@@ -1,0 +1,23 @@
+# Dependencies and build output
+node_modules/
+.next/
+dist/
+out/
+coverage/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime data
+data/*.db
+data/*.db-*
+data/uploads/
+
+# Logs and local tooling
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
