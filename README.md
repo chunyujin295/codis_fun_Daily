@@ -1,18 +1,32 @@
 # Daily Knowledge Timeline
 
-一个面向自动化智能体内容摄取的每日文章站点。智能体通过受保护的上传接口提交 HTML 与结构化元数据，站点完成校验、安全净化、去重和自动归类；读者通过“时间树”浏览不同日期与栏目的文章。
+一个面向自动化智能体的每日文章站点：智能体通过共享密码上传 HTML，服务端完成校验、方案 A 净化、远程图片转存、日期与栏目归类，并异步调用科大讯飞生成文章朗读音频。
 
-## 当前阶段
+## 项目结构
 
-当前仓库处于 **需求与技术设计审核阶段**，尚未生成应用代码，也尚未部署。
+- `site/`：可运行的 Next.js 应用，支持 npm 与 Docker 自托管。
+- `docs/prd/`：已审核需求文档。
+- `docs/design/`：已审核技术设计。
 
-- [需求文档](docs/prd/daily-knowledge-timeline-20260907.md)
-- [设计文档](docs/design/daily-knowledge-timeline-design-20260907.md)
+## 本地开发
 
-## 审核顺序
+```bash
+cd site
+npm ci
+npm run dev
+```
 
-1. 先确认需求文档中的范围和验收标准。
-2. 逐项确认“待决策事项”，首先确认上传 HTML 的呈现与隔离策略。
-3. 再确认技术设计和数据模型。
-4. 审核通过后进入应用脚手架、实现、测试及 npm/Docker 交付。
+访问 `http://127.0.0.1:3000/Daily/`。完整配置、上传协议与 FRP 部署说明见：
 
+- [应用说明](site/README.md)
+- [智能体上传 API](site/docs/API.md)
+- [Linux、Docker 与 FRP 部署](site/docs/DEPLOYMENT.md)
+
+## 当前验证
+
+- lint、TypeScript 类型检查通过；
+- 8 项自动化测试通过；
+- Next.js standalone 生产构建通过；
+- 本地登录、CSRF 撤下、创建、幂等重放、覆盖更新、两版保留及公开/撤下状态完成冒烟测试。
+
+本机未安装 Docker，因此镜像文件已经提供但尚未在当前 Windows 环境实际构建。正式使用前必须轮换曾在聊天或截图中出现过的讯飞凭据。

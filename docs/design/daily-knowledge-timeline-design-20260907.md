@@ -1,8 +1,9 @@
 ---
-version: 0.6-draft
+version: 1.0-approved
 generated_at: 2026-09-07T11:25:46+08:00
 updated_at: 2026-09-07T14:53:35+08:00
-status: 待用户审核
+status: 已审核，开发中
+approved_at: 2026-09-07T17:14:31+08:00
 depends_on: ../prd/daily-knowledge-timeline-20260907.md
 ---
 

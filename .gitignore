@@ -14,10 +14,14 @@ coverage/
 data/*.db
 data/*.db-*
 data/uploads/
+site/data/
+site/.next/
+site/.env
+site/.env.*
+!site/.env.example
 
 # Logs and local tooling
 *.log
 npm-debug.log*
 .DS_Store
 Thumbs.db
-
