@@ -1,7 +1,7 @@
 ---
-version: 0.5-draft
+version: 0.6-draft
 generated_at: 2026-09-07T11:25:46+08:00
-updated_at: 2026-09-07T14:42:25+08:00
+updated_at: 2026-09-07T14:53:35+08:00
 status: 待用户审核
 depends_on: ../prd/daily-knowledge-timeline-20260907.md
 ---
@@ -525,7 +525,7 @@ AdminAccount 1 ─── * AdminAudit
 - 每个文本段建立一个独立 WebSocket 会话，文本按 UTF-8 编码后 Base64；输入只能一次发送，`data.status` 固定为 `2`。
 - 官方限制为 Base64 前原文严格小于 8000 字节。工程上采用 7600 字节安全上限，按段落和中文标点切分，绝不按 JavaScript code unit 或 Base64 后长度切分。
 - 首版固定 `aue=raw`、`auf=audio/L16;rate=16000`、`tte=UTF8`、`bgs=0`、`reg=0`、`rdn=0`，获取 16 kHz PCM，再由 FFmpeg 统一编码并拼接为 MP3，避免跨会话拼接 MP3 头的问题。
-- `vcn` 为必填发音人；`speed`、`volume`、`pitch` 均允许 0–100，默认 50。发音人必须已在对应 APPID 下开通。
+- `vcn` 为必填发音人，首版默认 `x4_xiaoyan`；`speed`、`volume`、`pitch` 均允许 0–100，默认 50。默认值仍必须在对应 APPID 下已开通并通过配置测试。
 - 首版使用 JSON/Base64 响应，不启用 `output_proto=binary`。依次严格解码 `data.audio`；`code=0,data=null` 可忽略，只有收到非空音频且 `data.status=2` 才算该段成功。
 - WebSocket 库必须完成消息分片重组；断线或超时产生的残缺 PCM 全部丢弃，整段重新建立会话，不做片段续传。
 
@@ -539,7 +539,7 @@ AdminAccount 1 ─── * AdminAudit
 ### 15.5 后台语音设置
 
 - 启用/停用自动生成；保存多个供应商配置，并选择唯一活动配置。
-- 讯飞首版配置：显示名、启用/活动状态、APPID、APIKey、APISecret、发音人 `vcn`、语速、音量和音高。端点、编码、采样率、协议模式、分段上限、超时与重试属于系统固定或部署配置。
+- 讯飞首版配置：显示名、启用/活动状态、APPID、APIKey、APISecret、发音人 `vcn`（默认 `x4_xiaoyan`）、语速、音量和音高。端点、编码、采样率、协议模式、分段上限、超时与重试属于系统固定或部署配置。
 - 使用固定短句测试连接，并提示测试可能产生供应商费用；只显示脱敏结果和测试时间。
 - 三项讯飞凭据使用 AES-256-GCM 等 AEAD 分字段加密，AAD 绑定配置 ID、字段用途和凭据修订；接口只返回 `hasAppId/hasApiKey/hasApiSecret` 与更新时间，绝不返回掩码原文或密文。
 - 配置测试不是 ping：管理员明确点击后用固定短句完成一次真实合成、验证结束帧与非空 PCM，然后丢弃测试音频；保存、页面加载和健康检查不会自动计费调用。
@@ -727,6 +727,6 @@ FRP 强制传输 TLS 和强认证，映射端口绑定公网服务器回环地�
 
 ## 21. 审核入口
 
-方案 A、单个历史版本、后台文章操作范围、`Asia/Shanghai`、`https://codis.fun/Daily/` 和首版科大讯飞在线语音合成 WebAPI 已确认。
+方案 A、单个历史版本、后台文章操作范围、`Asia/Shanghai`、`https://codis.fun/Daily/`、科大讯飞在线语音合成 WebAPI 和默认发音人 `x4_xiaoyan` 均已确认。
 
-下一项只需确认讯飞默认发音人参数 `vcn`；它是接口必填项，并且必须在当前 APPID 下已开通。
+当前没有阻塞实现的产品决策。文档进入整体审核状态；用户确认审核通过后，再开始应用脚手架与实现。
