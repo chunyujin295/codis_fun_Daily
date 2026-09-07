@@ -1,7 +1,7 @@
 ---
-version: 0.4-draft
+version: 0.5-draft
 generated_at: 2026-09-07T11:25:46+08:00
-updated_at: 2026-09-07T11:49:04+08:00
+updated_at: 2026-09-07T14:42:25+08:00
 status: 待用户审核
 depends_on: ../prd/daily-knowledge-timeline-20260907.md
 ---
@@ -333,6 +333,13 @@ Idempotency-Key: tech-agent-2026-09-07-001
 - 后台维护可用的 `uploaderId` 显示名；禁用某个 ID 只能阻止该声明值，不能阻止持有共享密码者改报其他 ID。
 - 默认密码轮换立即使旧密码失效；如未来需要短暂重叠窗口，应显式记录起止时间。
 
+### 10.3 讯飞凭据处理
+
+- APPID、APIKey、APISecret 不写入 Git、示例配置、日志、截图型测试夹具或客户端代码；只有 TTS Worker 和管理员“测试配置”服务可短时解密。
+- 用户通过截图提供过的凭据视为开发期已暴露凭据，不在文档中转录，也不直接用于生产。首次真实接入前应在讯飞控制台轮换，并仅将新值输入管理后台。
+- 主加密密钥缺失或解密失败时 fail closed：文章仍可发布，TTS 状态显示不可用，不回退到明文配置。
+- 若启用讯飞 IP 白名单，应填写本地 Linux 主机请求讯飞时的公网出口 IP，而不是 FRP 公网服务器地址；家庭公网 IP 变化时需更新白名单或使用固定出口。
+
 ## 11. 数据模型
 
 ### 11.1 实体关系
@@ -402,7 +409,7 @@ AdminAccount 1 ─── * AdminAudit
 
 #### `tts_provider_configs` 与 `encrypted_secrets`
 
-供应商配置保存 `adapter_type`, `base_url`, `model`, `voice`, `public_config_json`, `config_version`, `is_active` 和测试状态。API Key 使用独立主密钥经 AEAD 加密后关联保存；读取 API 永不返回密钥或密文。
+供应商配置保存 `adapter_type`, `endpoint_id`, `voice`, `public_config_json`, `profile_revision`, `credential_revision`, `is_active` 和测试状态。讯飞凭据包包含 APPID、APIKey、APISecret，使用独立主密钥经 AEAD 加密后关联保存；读取 API 永不返回原值或密文。
 
 #### `tts_jobs` 与 `tts_chunks`
 
@@ -497,19 +504,48 @@ AdminAccount 1 ─── * AdminAudit
 
 ### 15.3 供应商适配层
 
-业务层只依赖统一能力：配置校验、能力查询、连接测试、单段合成和错误分类。首版建议提供一个 OpenAI-compatible speech API 适配器；兼容供应商只需配置 `baseUrl + apiKey + model + voice`。
+业务层只依赖统一能力：配置校验、能力查询、连接测试、单段合成和错误分类。首版确定实现稳定标识为 `xfyun-online-ws-v2` 的讯飞专用适配器，不复用 OpenAI-compatible 适配器。
 
-不同国产厂商若采用签名鉴权、异步任务或专有请求格式，则新增对应 `adapterType`，不修改文章、任务和播放器代码。后台不允许编写任意请求模板或任意请求头，防止配置注入和密钥泄露。
+不同国产厂商采用不同签名、异步任务或专有请求格式时，新增对应 `adapterType`，不修改文章、任务和播放器代码。只有协议兼容的厂商才能单纯替换 URL/API Key；后台不允许编写任意请求模板或任意请求头。
 
-### 15.4 后台语音设置
+### 15.4 科大讯飞在线语音合成适配器
+
+协议依据：[科大讯飞在线语音合成 WebAPI 官方文档](https://www.xfyun.cn/doc/tts/online_tts/API.html)。
+
+#### 固定端点与鉴权
+
+- 只连接 `wss://tts-api.xfyun.cn/v2/tts`，握手请求行为 `GET /v2/tts HTTP/1.1`。该适配器不开放任意 Base URL、请求头或模板，避免签名不一致、SSRF 和凭据外送。
+- 首版使用 APPID、APIKey、APISecret 的鉴权方式。每次握手以 GMT/RFC1123 当前时间生成 `host`、`date` 和 `authorization` 查询参数。
+- 待签名串严格为 `host: tts-api.xfyun.cn\ndate: {date}\nGET /v2/tts HTTP/1.1`；以 APISecret 做 HMAC-SHA256 后 Base64，再将包含 APIKey、算法、headers 与 signature 的 authorization 原文整体 Base64。
+- APPID 不参与 HMAC，放在请求 `common.app_id`。讯飞允许的时钟偏差最大 300 秒，因此 Linux 主机必须启用可靠时间同步并监测偏差。
+- 带 `authorization` 的完整 WebSocket URL 视同秘密，不得进入代理访问日志、应用异常、追踪、审计或监控标签。
+
+#### 请求、分段与音频
+
+- 每个文本段建立一个独立 WebSocket 会话，文本按 UTF-8 编码后 Base64；输入只能一次发送，`data.status` 固定为 `2`。
+- 官方限制为 Base64 前原文严格小于 8000 字节。工程上采用 7600 字节安全上限，按段落和中文标点切分，绝不按 JavaScript code unit 或 Base64 后长度切分。
+- 首版固定 `aue=raw`、`auf=audio/L16;rate=16000`、`tte=UTF8`、`bgs=0`、`reg=0`、`rdn=0`，获取 16 kHz PCM，再由 FFmpeg 统一编码并拼接为 MP3，避免跨会话拼接 MP3 头的问题。
+- `vcn` 为必填发音人；`speed`、`volume`、`pitch` 均允许 0–100，默认 50。发音人必须已在对应 APPID 下开通。
+- 首版使用 JSON/Base64 响应，不启用 `output_proto=binary`。依次严格解码 `data.audio`；`code=0,data=null` 可忽略，只有收到非空音频且 `data.status=2` 才算该段成功。
+- WebSocket 库必须完成消息分片重组；断线或超时产生的残缺 PCM 全部丢弃，整段重新建立会话，不做片段续传。
+
+#### 错误分类
+
+- 握手 401，以及 APPID、Base64、文本长度、JSON、参数和授权类错误不自动重试；403 归为时钟或 IP 白名单运维阻塞。
+- `11202`/`11203` 按 QPS/并发限流退避并降低并发；`11201` 总量或日额度耗尽时暂停等待人工处理。
+- 网络、TLS、连接重置、5xx 与供应商临时错误整段最多自动尝试 3 次，每次丢弃部分音频。未知非零错误默认人工重试，避免重复计费。
+- 诊断保存安全分类、供应商 code、阶段、是否可重试和 `sid`；讯飞部分错误码存在多重语义，因此同时保留脱敏 message 摘要，但不保存原始报文、正文或签名 URL。
+
+### 15.5 后台语音设置
 
 - 启用/停用自动生成；保存多个供应商配置，并选择唯一活动配置。
-- 配置适配器、HTTPS Base URL、API Key、模型、音色、语速、音量、音调、格式、采样率、超时和并发。
+- 讯飞首版配置：显示名、启用/活动状态、APPID、APIKey、APISecret、发音人 `vcn`、语速、音量和音高。端点、编码、采样率、协议模式、分段上限、超时与重试属于系统固定或部署配置。
 - 使用固定短句测试连接，并提示测试可能产生供应商费用；只显示脱敏结果和测试时间。
-- API Key 使用 AES-256-GCM 等 AEAD 加密入库，主加密密钥来自环境或 Docker Secret；接口只返回 `hasApiKey`，绝不返回掩码原文或密文。
+- 三项讯飞凭据使用 AES-256-GCM 等 AEAD 分字段加密，AAD 绑定配置 ID、字段用途和凭据修订；接口只返回 `hasAppId/hasApiKey/hasApiSecret` 与更新时间，绝不返回掩码原文或密文。
+- 配置测试不是 ping：管理员明确点击后用固定短句完成一次真实合成、验证结束帧与非空 PCM，然后丢弃测试音频；保存、页面加载和健康检查不会自动计费调用。
 - Base URL 默认禁止环回、私网、链路本地与云元数据地址。若以后接入本机 TTS，使用精确白名单而不是关闭 SSRF 防护。
 
-### 15.5 Worker、重试与成本控制
+### 15.6 Worker、重试与成本控制
 
 - 单机首版使用 SQLite 任务表和租约，不引入 Redis；TTS Worker 可与 Web 进程分开启动，默认单并发。
 - 网络错误、超时、408、429 和 5xx 使用指数退避并遵循 `Retry-After`；认证、模型或参数错误直接失败。
@@ -517,7 +553,7 @@ AdminAccount 1 ─── * AdminAudit
 - FFmpeg 把各段统一为固定采样率、声道和 MP3 编码后拼接，临时文件完成校验后原子重命名。
 - 匿名读者只能查询和播放结果，不能创建、重试或重新生成任务；管理员可重试、取消或对单篇重新生成。
 
-### 15.6 覆盖更新与保留
+### 15.7 覆盖更新与保留
 
 - 新版本成为当前版本时，旧音频立即停止从公共接口提供，旧任务标为 `SUPERSEDED`；Worker 落盘前再次确认目标仍是当前版本。
 - 若新旧 `text_hash` 和声音配置摘要相同，可复用已生成音频；API Key 轮换本身不使缓存失效。
@@ -525,7 +561,7 @@ AdminAccount 1 ─── * AdminAudit
 - 更改默认供应商只影响之后的新任务；既有 MP3 保持可用，管理员可主动重新生成。
 - 管理员撤下文章后，正文与音频公共接口都返回 404；智能体更新不能解除撤下状态。
 
-### 15.7 朗读按钮与播放胶囊
+### 15.8 朗读按钮与播放胶囊
 
 - 每篇文章始终保留朗读入口：`QUEUED/SYNTHESIZING/ASSEMBLING` 显示“朗读生成中”，`READY` 显示“朗读”，`FAILED` 或未配置供应商显示“朗读暂不可用”。公开端不显示供应商原始错误。
 - READY 后由用户明确点击才播放，不自动播放。播放器是固定在底部的非模态 `region`，不锁焦点，并给正文增加等高底部留白。
@@ -639,6 +675,7 @@ FRP 强制传输 TLS 和强认证，映射端口绑定公网服务器回环地�
 - slug 冲突与稳定排序。
 - 正文提取、中文分段、文本摘要和声音配置摘要。
 - `/Daily` URL 连接、资源路径和 Cookie Path 生成。
+- 使用假凭据验证讯飞 RFC1123/HMAC 签名黄金样例、7600 字节分段、Base64 严格解码和错误分类；测试输出不得含假密钥原文或完整签名 URL。
 
 ### 18.2 集成测试
 
@@ -649,6 +686,7 @@ FRP 强制传输 TLS 和强认证，映射端口绑定公网服务器回环地�
 - 禁用上传者和禁用栏目立即阻止新内容。
 - TTS 任务租约恢复、分段重试、缓存复用、旧任务 `SUPERSEDED` 和最终 MP3 拼接。
 - TTS 配置加密、不回显、测试连接和供应商错误分类。
+- 使用录制并脱敏的讯飞 JSON/TextMessage fixture 验证 `data=null`、多音频片段、`status=2`、消息分片、异常断线和残片清理；默认测试不访问付费 API。
 
 ### 18.3 端到端测试
 
@@ -659,6 +697,7 @@ FRP 强制传输 TLS 和强认证，映射端口绑定公网服务器回环地�
 - `/Daily`、文章深层链接、后台跳转、转存图片和 MP3 Range 在 FRP 代理路径下工作，域名其他路径不受影响。
 - 文章发布后立即可读，TTS 状态随后变为 READY；供应商失败时正文仍可读且管理员可重试。
 - 播放胶囊支持完整控件、移动安全区、站内持续播放和刷新后暂停恢复。
+- 真实讯飞冒烟测试仅通过显式环境开关和管理员动作运行，使用固定短句并提示可能计费；CI、健康检查和普通构建不得调用。
 
 ## 19. 可观测性与运维
 
@@ -688,6 +727,6 @@ FRP 强制传输 TLS 和强认证，映射端口绑定公网服务器回环地�
 
 ## 21. 审核入口
 
-方案 A、单个历史版本、后台文章操作范围、`Asia/Shanghai` 和 `https://codis.fun/Daily/` 已确认。
+方案 A、单个历史版本、后台文章操作范围、`Asia/Shanghai`、`https://codis.fun/Daily/` 和首版科大讯飞在线语音合成 WebAPI 已确认。
 
-下一项只需确认首版 TTS 接入：指定一家国产供应商及接口文档，或先实现 OpenAI-compatible 通用适配器并保留厂商扩展接口。
+下一项只需确认讯飞默认发音人参数 `vcn`；它是接口必填项，并且必须在当前 APPID 下已开通。
