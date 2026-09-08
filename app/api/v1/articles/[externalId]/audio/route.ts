@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   _request: Request,
-  context: RouteContext<'/api/v1/articles/[externalId]/audio'>,
+  context: { params: Promise<{ externalId: string }> },
 ) {
   const { externalId: articleId } = await context.params;
   const row = getDb()

@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   _request: Request,
-  context: RouteContext<'/media/images/[filename]'>,
+  context: { params: Promise<{ filename: string }> },
 ) {
   const { filename } = await context.params;
   const match = /^([a-f0-9]{64})\.webp$/.exec(filename);

@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 
 export async function POST(
   request: NextRequest,
-  context: RouteContext<'/admin/api/articles/[id]/archive'>,
+  context: { params: Promise<{ id: string }> },
 ) {
   const auth = requireAdminRequest(request, true);
   if (!auth.ok) {

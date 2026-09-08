@@ -7,10 +7,12 @@ import { getArticleBySlug } from '@/lib/articles';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ArticlePage(
-  props: PageProps<'/articles/[slug]'>,
-) {
-  const { slug } = await props.params;
+export default async function ArticlePage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
   const article = getArticleBySlug(slug);
   if (!article) notFound();
   const tags = JSON.parse(article.tagsJson) as string[];

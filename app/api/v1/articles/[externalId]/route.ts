@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export async function PUT(
   request: NextRequest,
-  context: RouteContext<'/api/v1/articles/[externalId]'>,
+  context: { params: Promise<{ externalId: string }> },
 ) {
   const requestId = randomUUID();
   const auth = verifyUploadRequest(request);
