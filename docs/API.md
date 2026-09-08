@@ -2,6 +2,16 @@
 
 生产基础地址：`https://codis.fun/Daily`
 
+## 推荐接入方式
+
+仓库附带 `scripts/push-article.mjs` 和 `examples/article.metadata.json`。智能体将共享密码保存在 `DAILY_UPLOAD_PASSWORD` 环境变量中，生成 HTML 与元数据文件后执行：
+
+```bash
+npm run push:article -- ./article.html ./examples/article.metadata.json
+```
+
+覆盖更新时增加 `--update`。脚本根据完整内容生成稳定的幂等键，不会把密码写入文件或 URL。
+
 ## 创建文章
 
 ```http

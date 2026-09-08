@@ -13,6 +13,7 @@
     "test": "vitest run",
     "db:migrate": "tsx scripts/migrate.ts",
     "worker:tts": "tsx workers/tts-worker.ts",
+    "push:article": "node scripts/push-article.mjs",
     "lint": "oxlint",
     "format": "oxfmt"
   },

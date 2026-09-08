@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/*': ['node_modules/better-sqlite3/**/*', 'node_modules/sharp/**/*'],
   },
+  outputFileTracingExcludes: {
+    '/*': ['./data/**/*', './coverage/**/*', './docs/**/*', './tests/**/*'],
+  },
   async headers() {
     const isDev = process.env.NODE_ENV !== 'production';
     const contentSecurityPolicy = [
