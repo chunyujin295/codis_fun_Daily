@@ -13,7 +13,8 @@
     "test": "vitest run",
     "db:migrate": "tsx scripts/migrate.ts",
     "worker:tts": "tsx workers/tts-worker.ts",
-    "push:article": "node scripts/push-article.mjs",
+    "publish": "node --env-file-if-exists=.env.agent scripts/push-article.mjs",
+    "push:article": "node --env-file-if-exists=.env.agent scripts/push-article.mjs",
     "lint": "oxlint",
     "format": "oxfmt"
   },

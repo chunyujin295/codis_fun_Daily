@@ -3,11 +3,17 @@ import { readFile } from 'node:fs/promises';
 
 function showHelp() {
   console.log(`Usage:
-  npm run push:article -- <article.html> <metadata.json> [--update]
+  npm run publish -- <article.html> [metadata.json] [--update]
+
+Quick setup:
+  Copy .env.agent.example to .env.agent once, then fill in the site URL
+  and shared upload token. If metadata.json is omitted, the script reads
+  <article-name>.metadata.json next to the HTML file.
 
 Environment:
   DAILY_BASE_URL         Default: http://127.0.0.1:3000/Daily
-  DAILY_UPLOAD_PASSWORD  Required shared upload password
+  DAILY_UPLOAD_TOKEN     Required shared upload token
+  DAILY_UPLOAD_PASSWORD  Backward-compatible alias for DAILY_UPLOAD_TOKEN
   DAILY_IDEMPOTENCY_KEY  Optional; defaults to a hash of metadata + HTML
 `);
 }
@@ -20,15 +26,23 @@ if (args.includes('--help') || args.includes('-h')) {
 
 const update = args.includes('--update');
 const positional = args.filter((value) => !value.startsWith('--'));
-if (positional.length !== 2) {
+if (positional.length < 1 || positional.length > 2) {
   showHelp();
   process.exit(2);
 }
 
-const [htmlPath, metadataPath] = positional;
-const password = process.env.DAILY_UPLOAD_PASSWORD;
+const htmlPath = positional[0];
+const metadataPath =
+  positional[1] ??
+  (htmlPath.toLowerCase().endsWith('.html')
+    ? `${htmlPath.slice(0, -5)}.metadata.json`
+    : `${htmlPath}.metadata.json`);
+const password =
+  process.env.DAILY_UPLOAD_TOKEN ?? process.env.DAILY_UPLOAD_PASSWORD;
 if (!password) {
-  throw new Error('DAILY_UPLOAD_PASSWORD is required');
+  throw new Error(
+    'DAILY_UPLOAD_TOKEN is required; copy .env.agent.example to .env.agent and configure it once',
+  );
 }
 
 const baseUrl = new URL(

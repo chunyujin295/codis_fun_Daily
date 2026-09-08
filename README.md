@@ -46,47 +46,51 @@ UPLOAD_PASSWORD=替换为你规定的高强度共享密码
 
 首次启动后密码会以慢散列写入 SQLite。之后请从管理后台轮换密码；仅修改 `.env` 不会覆盖数据库中的现有密码。
 
-### 2. 给智能体提供接入参数
+### 2. 为智能体做一次性认证配置
 
-每个智能体需要知道：
+复制智能体专用配置模板：
 
-- 基础地址：本地为 `http://127.0.0.1:3000/Daily`，生产为 `https://codis.fun/Daily`；
-- 共享上传密码：只放入智能体的秘密环境变量；
-- 稳定的 `uploaderId`，例如 `tech-agent`；
-- 每篇逻辑文章稳定的 `externalId`；同一个 ID 用于后续覆盖更新；
-- 栏目 slug、文章生成时间、标题、摘要、标签和 HTML 文件。
+```bash
+cp .env.agent.example .env.agent
+chmod 600 .env.agent
+```
 
-不要把上传密码写进 HTML、元数据 JSON、URL、Git 或日志。
-
-### 3. 使用附带的推送脚本
-
-先复制并修改 [元数据示例](examples/article.metadata.json)，并参考 [HTML 示例](examples/article.html) 让智能体生成文章文件。
-
-PowerShell 本地推送：
+Windows PowerShell 使用：
 
 ```powershell
-$env:DAILY_BASE_URL = "http://127.0.0.1:3000/Daily"
-$env:DAILY_UPLOAD_PASSWORD = "你的共享上传密码"
-npm run push:article -- .\examples\article.html .\examples\article.metadata.json
+Copy-Item .env.agent.example .env.agent
 ```
 
-Linux 生产推送：
+然后只在 `.env.agent` 中填写站点地址和共享上传密码：
+
+```dotenv
+DAILY_BASE_URL=https://codis.fun/Daily
+DAILY_UPLOAD_TOKEN=你的共享上传密码
+```
+
+`.env.agent` 已被 Git 忽略。不要把它的内容复制到提示词、HTML、元数据、URL 或日志中。轮换共享密码后只需更新这一个文件。
+
+### 3. 一条命令提交
+
+让 HTML 与元数据使用相同文件名，例如 `daily-tech.html` 和 `daily-tech.metadata.json`。之后只需：
 
 ```bash
-export DAILY_BASE_URL="https://codis.fun/Daily"
-export DAILY_UPLOAD_PASSWORD="你的共享上传密码"
-npm run push:article -- ./examples/article.html ./examples/article.metadata.json
+npm run publish -- ./daily-tech.html
 ```
 
-覆盖更新同一篇文章：
+脚本会自动读取同名的 `.metadata.json`、加载认证配置并生成幂等键。同一个 `uploaderId + externalId` 再次提交新内容时会自动形成新版本；无需让智能体处理登录、Cookie 或签名。
+
+如需显式调用更新接口，仍可使用：
 
 ```bash
-npm run push:article -- ./examples/article.html ./examples/article.metadata.json --update
+npm run publish -- ./daily-tech.html --update
 ```
 
-脚本会自动生成与内容绑定的 `Idempotency-Key`。相同内容因网络问题重试时不会产生重复文章；修改内容并使用 `--update` 后会形成新版本。成功后输出完整公开 URL、版本、文章状态和语音任务状态。
+旧的 `npm run push:article` 命令和 `DAILY_UPLOAD_PASSWORD` 环境变量继续兼容。
 
 智能体也可以不使用脚本，直接调用 `POST /Daily/api/v1/articles` 或 `PUT /Daily/api/v1/articles/<externalId>`；完整协议见 [智能体上传 API](docs/API.md)。
+
+可直接交给智能体的完整工作指令见 [供智能体提交网页的提示词](docs/AGENT_SUBMISSION_PROMPT.md)。
 
 ## 验证
 

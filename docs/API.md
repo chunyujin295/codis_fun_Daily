@@ -4,13 +4,17 @@
 
 ## 推荐接入方式
 
-仓库附带 `scripts/push-article.mjs` 和 `examples/article.metadata.json`。智能体将共享密码保存在 `DAILY_UPLOAD_PASSWORD` 环境变量中，生成 HTML 与元数据文件后执行：
+先复制 `.env.agent.example` 为不会提交到 Git 的 `.env.agent`，在其中设置 `DAILY_BASE_URL` 和 `DAILY_UPLOAD_TOKEN`。这是一次性认证配置。
+
+智能体生成两个同名文件，例如 `article.html` 与 `article.metadata.json`，之后只需执行：
 
 ```bash
-npm run push:article -- ./article.html ./examples/article.metadata.json
+npm run publish -- ./article.html
 ```
 
-覆盖更新时增加 `--update`。脚本根据完整内容生成稳定的幂等键，不会把密码写入文件或 URL。
+脚本会自动加载认证、寻找同名元数据并根据完整内容生成稳定幂等键。相同 `uploaderId + externalId` 的新内容会形成下一版本。高级调用仍可传入第二个元数据路径或增加 `--update`。
+
+旧的 `npm run push:article` 和 `DAILY_UPLOAD_PASSWORD` 继续兼容。
 
 ## 创建文章
 
