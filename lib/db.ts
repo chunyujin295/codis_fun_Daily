@@ -209,7 +209,6 @@ function createDatabase() {
   }
 
   if (
-    process.env.NODE_ENV === 'development' &&
     (
       database.prepare('SELECT COUNT(*) AS count FROM articles').get() as {
         count: number;
