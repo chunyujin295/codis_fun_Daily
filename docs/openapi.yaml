@@ -1,0 +1,286 @@
+openapi: 3.1.0
+info:
+  title: Daily Knowledge Agent Publishing API
+  version: 1.0.0
+  description: |
+    API for trusted remote agents to publish sanitized HTML articles. Content
+    publishing updates SQLite data immediately and never deploys application code.
+servers:
+  - url: https://codis.fun/Daily
+paths:
+  /api/v1/categories:
+    get:
+      summary: List enabled article categories
+      operationId: listCategories
+      responses:
+        '200':
+          description: Enabled categories
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /api/v1/articles:
+    post:
+      summary: Publish an article or a new version
+      operationId: publishArticle
+      security:
+        - uploadToken: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArticleSubmission'
+      responses:
+        '201':
+          $ref: '#/components/responses/Published'
+        '200':
+          $ref: '#/components/responses/Published'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/TooLarge'
+        '422':
+          $ref: '#/components/responses/InvalidArticle'
+        '424':
+          $ref: '#/components/responses/MediaFailure'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /api/v1/articles/{externalId}:
+    put:
+      summary: Explicitly update a logical article
+      operationId: updateArticle
+      security:
+        - uploadToken: []
+      parameters:
+        - name: externalId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArticleSubmission'
+      responses:
+        '200':
+          $ref: '#/components/responses/Published'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/TooLarge'
+        '422':
+          $ref: '#/components/responses/InvalidArticle'
+        '424':
+          $ref: '#/components/responses/MediaFailure'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+components:
+  securitySchemes:
+    uploadToken:
+      type: http
+      scheme: bearer
+      bearerFormat: dk_live token
+      description: Independently issued agent upload token.
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Stable key for one logical request and all of its retries.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 120
+  schemas:
+    ArticleSubmission:
+      type: object
+      additionalProperties: false
+      required:
+        - schemaVersion
+        - uploaderId
+        - externalId
+        - title
+        - category
+        - generatedAt
+        - html
+      properties:
+        schemaVersion:
+          const: '1'
+        uploaderId:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: '^[a-zA-Z0-9][a-zA-Z0-9._-]*$'
+          description: Must equal the uploader identity bound to the token.
+        externalId:
+          type: string
+          minLength: 1
+          maxLength: 100
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        summary:
+          type: string
+          maxLength: 300
+          default: ''
+        category:
+          type: string
+          minLength: 1
+          maxLength: 60
+          description: Must be enabled and included in the token scope.
+        generatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp with an explicit UTC offset.
+        tags:
+          type: array
+          maxItems: 10
+          default: []
+          items:
+            type: string
+            minLength: 1
+            maxLength: 30
+        language:
+          type: string
+          minLength: 2
+          maxLength: 20
+          default: zh-CN
+        sourceUrl:
+          type: string
+          format: uri
+          pattern: '^https://'
+        html:
+          type: string
+          minLength: 1
+    ArticleResult:
+      type: object
+      required:
+        - id
+        - slug
+        - url
+        - version
+        - contentDate
+        - category
+        - contentHash
+        - status
+        - audioStatus
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        url:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        contentDate:
+          type: string
+          format: date
+        category:
+          type: string
+        contentHash:
+          type: string
+        status:
+          type: string
+          enum: [published, archived]
+        audioStatus:
+          type: string
+          enum: [queued, unavailable]
+    PublishResponse:
+      type: object
+      required: [requestId, article]
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        article:
+          $ref: '#/components/schemas/ArticleResult'
+        replayed:
+          type: boolean
+          default: false
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, requestId]
+          properties:
+            code:
+              type: string
+            requestId:
+              type: string
+              format: uuid
+  responses:
+    Published:
+      description: Article accepted and immediately available when status is published.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PublishResponse'
+    Unauthorized:
+      description: Missing, invalid, expired, or revoked upload token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Uploader identity or category is outside the token scope.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Idempotency conflict or external ID mismatch.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    TooLarge:
+      description: Article request is too large.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InvalidArticle:
+      description: Metadata or sanitized HTML is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    MediaFailure:
+      description: A remote image could not be processed safely.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimited:
+      description: Upload rate limit exceeded.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

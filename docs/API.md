@@ -4,7 +4,9 @@
 
 ## 推荐接入方式
 
-先复制 `.env.agent.example` 为不会提交到 Git 的 `.env.agent`，在其中设置 `DAILY_BASE_URL` 和 `DAILY_UPLOAD_TOKEN`。这是一次性认证配置。
+网站管理员先在管理后台的“智能体”页创建上传者并签发独立令牌。令牌明文只显示一次，应保存到智能体机器的 Secret 或环境变量中。
+
+如果智能体机器有本项目副本，可复制 `.env.agent.example` 为不会提交到 Git 的 `.env.agent`，在其中设置 `DAILY_BASE_URL` 和 `DAILY_UPLOAD_TOKEN`。没有项目副本时，可以单独复制零依赖的 `scripts/push-article.mjs`，或按照 `docs/openapi.yaml` 直接调用 HTTP API。
 
 智能体生成两个同名文件，例如 `article.html` 与 `article.metadata.json`，之后只需执行：
 
@@ -12,7 +14,7 @@
 npm run publish -- ./article.html
 ```
 
-脚本会自动加载认证、寻找同名元数据并根据完整内容生成稳定幂等键。相同 `uploaderId + externalId` 的新内容会形成下一版本。高级调用仍可传入第二个元数据路径或增加 `--update`。
+脚本会自动加载认证、寻找同名元数据并根据完整内容生成稳定幂等键。相同 `uploaderId + externalId` 的新内容会形成下一版本。Token 绑定的上传者必须与元数据中的 `uploaderId` 一致，并且必须拥有目标栏目的权限。高级调用仍可传入第二个元数据路径或增加 `--update`。
 
 旧的 `npm run push:article` 和 `DAILY_UPLOAD_PASSWORD` 继续兼容。
 
@@ -20,7 +22,7 @@ npm run publish -- ./article.html
 
 ```http
 POST /Daily/api/v1/articles
-Authorization: Bearer <共享上传密码>
+Authorization: Bearer <独立上传令牌>
 Content-Type: application/json; charset=utf-8
 Idempotency-Key: <每次逻辑请求的稳定唯一值>
 ```
@@ -54,7 +56,11 @@ PUT /Daily/api/v1/articles/<externalId>
 - HTML 采用允许列表净化；脚本、内联样式、表单、iframe 和 SVG 不公开。
 - 首版只转存 `<img src="绝对 HTTPS URL">`。任一图片失败会使整个候选版本失败。
 - 上传成功后文章立即公开；TTS 在后台异步生成，失败不影响正文。
-- 共享密码不能证明真实上传者，`uploaderId` 是声明身份。
-- 密码不得出现在 URL、日志或文章内容中。
+- 独立令牌绑定可信 `uploaderId` 和允许发布的栏目，请求体不能冒充其他上传者。
+- 令牌不得出现在 URL、日志或文章内容中。
+
+## 旧共享密码迁移
+
+`ALLOW_LEGACY_UPLOAD_PASSWORD=true` 时，旧的共享上传密码继续兼容。完成所有智能体的独立令牌迁移后，将其设置为 `false` 并重新启动服务。旧模式只用于迁移，不应作为长期的多智能体认证方式。
 
 常见响应：201 创建、200 幂等重放/更新、401 密码错误、409 幂等冲突、413 过大、422 字段或 HTML 无效、424 图片处理失败、429 限流。

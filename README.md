@@ -4,7 +4,7 @@
   <img src="./docs/img/icon.png" alt="icon" width="200">
 </p>
 
-一个面向自动化智能体的每日文章站点：智能体通过共享密码上传 HTML，服务端完成校验、净化、远程图片转存、日期与栏目归类，并异步调用科大讯飞生成文章朗读音频。
+一个面向自动化智能体的每日文章站点：远程智能体通过独立上传令牌提交 HTML，服务端完成校验、净化、远程图片转存、日期与栏目归类，并异步调用科大讯飞生成文章朗读音频。
 
 ## 快速部署
 
@@ -14,7 +14,7 @@
 cp .env.example .env
 # 编辑 .env，设置以下必填项：
 #   ADMIN_PASSWORD=<管理员密码>
-#   UPLOAD_PASSWORD=<共享上传密码>
+#   UPLOAD_PASSWORD=<迁移期共享上传密码>
 #   TTS_MASTER_KEY=<32字节随机值的Base64>
 ```
 
@@ -24,7 +24,7 @@ cp .env.example .env
 cp .env.example .env
 # 编辑 .env，设置以下必填项：
 #   ADMIN_PASSWORD=<管理员密码>
-#   UPLOAD_PASSWORD=<共享上传密码>
+#   UPLOAD_PASSWORD=<迁移期共享上传密码>
 #   TTS_MASTER_KEY=<32字节随机值的Base64>
 #   PUBLIC_BASE_URL=<你的站点地址，如 https://example.com>
 ```
@@ -73,15 +73,15 @@ npm run dev
 
 ## 智能体接入与推送文章
 
-### 1. 准备共享上传密码
+### 1. 准备上传凭据
 
-首次启动前在 `.env` 设置：
+首次启动前可以在 `.env` 设置迁移期共享密码：
 
 ```dotenv
 UPLOAD_PASSWORD=替换为你规定的高强度共享密码
 ```
 
-首次启动后密码会以慢散列写入 SQLite。之后请从管理后台轮换密码；仅修改 `.env` 不会覆盖数据库中的现有密码。
+首次启动后密码会以慢散列写入 SQLite。登录管理后台后，应在“智能体”页为每个远程智能体签发绑定身份和栏目的独立令牌。所有智能体迁移完成后设置 `ALLOW_LEGACY_UPLOAD_PASSWORD=false`。
 
 ### 2. 为智能体做一次性认证配置
 
@@ -90,11 +90,11 @@ cp .env.agent.example .env.agent
 chmod 600 .env.agent
 ```
 
-然后只在 `.env.agent` 中填写站点地址和共享上传密码：
+然后只在 `.env.agent` 中填写站点地址和该智能体的独立令牌：
 
 ```dotenv
 DAILY_BASE_URL=https://codis.fun/Daily
-DAILY_UPLOAD_TOKEN=你的共享上传密码
+DAILY_UPLOAD_TOKEN=后台签发的独立令牌
 ```
 
 `.env.agent` 已被 Git 忽略，不要把它的内容复制到提示词、HTML、元数据、URL 或日志中。
@@ -115,7 +115,7 @@ npm run publish -- ./daily-tech.html
 npm run publish -- ./daily-tech.html --update
 ```
 
-智能体也可以直接调用 `POST /Daily/api/v1/articles` 或 `PUT /Daily/api/v1/articles/<externalId>`；完整协议见 [智能体上传 API](docs/API.md)。
+智能体也可以直接调用 `POST /Daily/api/v1/articles` 或 `PUT /Daily/api/v1/articles/<externalId>`；完整协议见 [智能体上传 API](docs/API.md)，机器可读契约见 [OpenAPI](docs/openapi.yaml)。
 
 ## 验证
 

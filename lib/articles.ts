@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
 import { ARTICLE_MAX_BYTES, BASE_PATH, SITE_TIME_ZONE } from '@/lib/constants';
+import type { UploadPrincipal } from '@/lib/auth';
 import { sha256 } from '@/lib/crypto';
 import { getDb } from '@/lib/db';
 import { processArticleHtml, type StoredMedia } from '@/lib/html';
@@ -60,6 +61,19 @@ export type ArticleSubmissionResult = {
   replayed?: boolean;
 };
 
+export function assertUploadPrincipal(
+  input: ArticleInput,
+  principal: UploadPrincipal | undefined,
+) {
+  if (!principal) return;
+  if (input.uploaderId !== principal.uploaderId) {
+    throw new ArticleError('UPLOADER_MISMATCH', 403);
+  }
+  if (!principal.allowedCategories.includes(input.category)) {
+    throw new ArticleError('CATEGORY_FORBIDDEN', 403);
+  }
+}
+
 function getContentDate(generatedAt: string) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: SITE_TIME_ZONE,
@@ -111,7 +125,11 @@ function normalizeTags(tags: string[]) {
 export async function submitArticle(
   rawInput: unknown,
   idempotencyKey: string,
-  options: { adminRepublish?: boolean; expectedExternalId?: string } = {},
+  options: {
+    adminRepublish?: boolean;
+    expectedExternalId?: string;
+    principal?: UploadPrincipal;
+  } = {},
 ): Promise<ArticleSubmissionResult> {
   const parsed = articleInputSchema.safeParse(rawInput);
   if (!parsed.success) {
@@ -122,6 +140,7 @@ export async function submitArticle(
     );
   }
   const input = { ...parsed.data, tags: normalizeTags(parsed.data.tags) };
+  assertUploadPrincipal(input, options.principal);
   if (Buffer.byteLength(input.html, 'utf8') > ARTICLE_MAX_BYTES) {
     throw new ArticleError('ARTICLE_TOO_LARGE', 413);
   }

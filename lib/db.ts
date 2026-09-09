@@ -50,6 +50,25 @@ function createDatabase() {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS upload_tokens (
+      id TEXT PRIMARY KEY,
+      uploader_id TEXT NOT NULL REFERENCES uploaders(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      token_prefix TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      expires_at TEXT,
+      last_used_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS upload_token_categories (
+      token_id TEXT NOT NULL REFERENCES upload_tokens(id) ON DELETE CASCADE,
+      category_slug TEXT NOT NULL REFERENCES categories(slug),
+      PRIMARY KEY(token_id, category_slug)
+    );
+
     CREATE TABLE IF NOT EXISTS articles (
       id TEXT PRIMARY KEY,
       external_id TEXT NOT NULL,
@@ -189,6 +208,8 @@ function createDatabase() {
     CREATE INDEX IF NOT EXISTS idx_article_versions_timeline
       ON article_versions(content_date DESC, category_slug, generated_at DESC, article_id DESC);
     CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status);
+    CREATE INDEX IF NOT EXISTS idx_upload_tokens_uploader
+      ON upload_tokens(uploader_id, enabled);
     CREATE INDEX IF NOT EXISTS idx_tts_jobs_status ON tts_jobs(status, created_at);
     CREATE INDEX IF NOT EXISTS idx_upload_audits_created ON upload_audits(created_at DESC);
   `);

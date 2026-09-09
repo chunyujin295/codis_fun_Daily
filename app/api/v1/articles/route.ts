@@ -38,6 +38,7 @@ export async function POST(request: Request) {
     const result = await submitArticle(
       input,
       request.headers.get('idempotency-key') ?? '',
+      { principal: auth.principal ?? undefined },
     );
     return NextResponse.json(result, {
       status: result.replayed ? 200 : 201,

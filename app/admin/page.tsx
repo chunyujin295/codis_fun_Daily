@@ -1,6 +1,6 @@
 import { AdminDashboard } from '@/components/admin-dashboard';
 import { getAdminArticles, getCategories, getOverview } from '@/lib/articles';
-import { requireAdminPage } from '@/lib/auth';
+import { getAdminUploaders, requireAdminPage } from '@/lib/auth';
 import { getTtsAdminConfig } from '@/lib/tts';
 
 export const dynamic = 'force-dynamic';
@@ -13,6 +13,7 @@ export default async function AdminPage() {
       overview={getOverview()}
       articles={getAdminArticles()}
       categories={getCategories()}
+      uploaders={getAdminUploaders()}
       tts={getTtsAdminConfig()}
     />
   );

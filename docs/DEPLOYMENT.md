@@ -8,14 +8,17 @@ cp .env.example .env
 
 编辑 `.env`，设置以下必填项：
 
-| 变量 | 说明 |
-|------|------|
-| `ADMIN_PASSWORD` | 管理员密码，首次启动写入慢散列 |
-| `UPLOAD_PASSWORD` | 智能体共享上传密码 |
-| `TTS_MASTER_KEY` | 32 字节随机值的 Base64，加密讯飞凭据 |
-| `PUBLIC_BASE_URL` | 站点公网地址，如 `https://codis.fun/Daily` |
+| 变量                           | 说明                                         |
+| ------------------------------ | -------------------------------------------- |
+| `ADMIN_PASSWORD`               | 管理员密码，首次启动写入慢散列               |
+| `UPLOAD_PASSWORD`              | 迁移期智能体共享上传密码，首次启动写入慢散列 |
+| `ALLOW_LEGACY_UPLOAD_PASSWORD` | 全部智能体改用独立令牌后设置为 `false`       |
+| `TTS_MASTER_KEY`               | 32 字节随机值的 Base64，加密讯飞凭据         |
+| `PUBLIC_BASE_URL`              | 站点公网地址，如 `https://codis.fun/Daily`   |
 
 > 正式使用前必须轮换曾在聊天或截图中出现过的讯飞凭据。
+
+服务启动后，管理员应在 `/Daily/admin` 的“智能体”页为每个远程智能体签发独立令牌，并限定允许发布的栏目。独立令牌明文只显示一次。
 
 ## 2. Docker 部署（推荐）
 

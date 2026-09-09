@@ -57,6 +57,22 @@ type Category = {
   sortOrder: number;
   enabled: number;
 };
+type AdminUploader = {
+  id: string;
+  displayName: string;
+  enabled: number;
+  updatedAt: string;
+  tokens: {
+    id: string;
+    name: string;
+    tokenPrefix: string;
+    enabled: number;
+    expiresAt: string | null;
+    lastUsedAt: string | null;
+    createdAt: string;
+    categories: string[];
+  }[];
+};
 type TtsConfig = {
   adapterType: string;
   endpoint: string;
@@ -92,6 +108,7 @@ export function AdminDashboard({
   overview,
   articles: initialArticles,
   categories,
+  uploaders,
   tts,
 }: {
   csrfToken: string;
@@ -101,11 +118,13 @@ export function AdminDashboard({
   };
   articles: AdminArticle[];
   categories: Category[];
+  uploaders: AdminUploader[];
   tts: TtsConfig;
 }) {
   const [articles, setArticles] = useState(initialArticles);
   const [message, setMessage] = useState('');
   const [ttsEnabled, setTtsEnabled] = useState(tts.enabled);
+  const [issuedToken, setIssuedToken] = useState<string | null>(null);
 
   const call = useCallback(
     async (path: string, init: RequestInit = {}) => {
@@ -213,6 +232,59 @@ export function AdminDashboard({
       window.setTimeout(() => window.location.reload(), 500);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '保存失败');
+    }
+  }
+
+  async function createUploadToken(event: SyntheticEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const expiresAt = form.get('expiresAt');
+    try {
+      const result = await call('/uploaders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uploaderId: form.get('uploaderId'),
+          displayName: form.get('displayName'),
+          tokenName: form.get('tokenName'),
+          categories: form.getAll('categories'),
+          expiresAt:
+            typeof expiresAt === 'string' && expiresAt
+              ? new Date(expiresAt).toISOString()
+              : undefined,
+        }),
+      });
+      const token = result.token as { token?: string } | undefined;
+      if (!token?.token) throw new Error('服务器没有返回令牌');
+      setIssuedToken(token.token);
+      setMessage('令牌签发成功。请立即复制；离开页面后无法再次查看明文。');
+      event.currentTarget.reset();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '令牌签发失败');
+    }
+  }
+
+  async function setTokenEnabled(tokenId: string, enabled: boolean) {
+    try {
+      await call(`/upload-tokens/${tokenId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+      });
+      setMessage(enabled ? '令牌已启用。' : '令牌已撤销。');
+      window.setTimeout(() => window.location.reload(), 500);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '令牌状态更新失败');
+    }
+  }
+
+  async function revokeToken(tokenId: string) {
+    try {
+      await call(`/upload-tokens/${tokenId}`, { method: 'DELETE' });
+      setMessage('令牌已永久撤销，原令牌不能恢复使用。');
+      window.setTimeout(() => window.location.reload(), 500);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '令牌撤销失败');
     }
   }
 
@@ -333,6 +405,7 @@ export function AdminDashboard({
           <TabsTrigger value="articles">文章</TabsTrigger>
           <TabsTrigger value="upload">上传更新</TabsTrigger>
           <TabsTrigger value="categories">栏目</TabsTrigger>
+          <TabsTrigger value="agents">智能体</TabsTrigger>
           <TabsTrigger value="settings">设置</TabsTrigger>
         </TabsList>
 
@@ -559,6 +632,187 @@ export function AdminDashboard({
               接受上传并公开展示
             </label>
             <Button type="submit">保存栏目</Button>
+          </form>
+        </TabsContent>
+
+        <TabsContent value="agents" className="admin-panel">
+          <div className="panel-heading">
+            <div>
+              <h2>智能体与上传令牌</h2>
+              <p>每个令牌绑定固定上传者和栏目；令牌明文只显示一次。</p>
+            </div>
+            <KeyRound />
+          </div>
+
+          {issuedToken ? (
+            <section className="admin-form">
+              <label htmlFor="issued-upload-token">
+                新令牌（请立即保存）
+                <Input
+                  id="issued-upload-token"
+                  value={issuedToken}
+                  readOnly
+                  onFocus={(event) => event.currentTarget.select()}
+                />
+              </label>
+              <small>
+                该值不会再次显示；请保存到智能体机器的 Secret 或环境变量中。
+              </small>
+            </section>
+          ) : null}
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>上传者</TableHead>
+                <TableHead>令牌</TableHead>
+                <TableHead>栏目</TableHead>
+                <TableHead>最近使用</TableHead>
+                <TableHead>操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {uploaders.flatMap((uploader) =>
+                uploader.tokens.length
+                  ? uploader.tokens.map((token) => (
+                      <TableRow key={token.id}>
+                        <TableCell>
+                          {uploader.displayName}
+                          <small>{uploader.id}</small>
+                        </TableCell>
+                        <TableCell>
+                          {token.name}
+                          <small>{token.tokenPrefix}…</small>
+                          <small>
+                            {token.expiresAt
+                              ? `到期：${new Date(token.expiresAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`
+                              : '长期有效'}
+                          </small>
+                        </TableCell>
+                        <TableCell>{token.categories.join('、')}</TableCell>
+                        <TableCell>
+                          {token.lastUsedAt
+                            ? new Date(token.lastUsedAt).toLocaleString(
+                                'zh-CN',
+                                {
+                                  timeZone: 'Asia/Shanghai',
+                                },
+                              )
+                            : '尚未使用'}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={token.enabled ? 'destructive' : 'outline'}
+                            onClick={() =>
+                              void setTokenEnabled(token.id, !token.enabled)
+                            }
+                          >
+                            {token.enabled ? '停用' : '启用'}
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger
+                              render={
+                                <Button variant="destructive" size="sm" />
+                              }
+                            >
+                              永久撤销
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  永久撤销这个令牌？
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  撤销后不能恢复；持有原令牌的智能体将立即无法上传。
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogCancel
+                                  variant="destructive"
+                                  onClick={() => void revokeToken(token.id)}
+                                >
+                                  确认撤销
+                                </AlertDialogCancel>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  : [
+                      <TableRow key={`${uploader.id}-empty`}>
+                        <TableCell>
+                          {uploader.displayName}
+                          <small>{uploader.id}</small>
+                        </TableCell>
+                        <TableCell colSpan={4}>尚未签发独立令牌</TableCell>
+                      </TableRow>,
+                    ],
+              )}
+            </TableBody>
+          </Table>
+
+          <form
+            className="admin-form admin-form-grid"
+            onSubmit={createUploadToken}
+          >
+            <label htmlFor="agent-uploader-id">
+              上传者 ID
+              <Input
+                id="agent-uploader-id"
+                name="uploaderId"
+                pattern="[a-zA-Z0-9][a-zA-Z0-9._-]*"
+                placeholder="technology-agent"
+                required
+              />
+            </label>
+            <label htmlFor="agent-display-name">
+              显示名
+              <Input
+                id="agent-display-name"
+                name="displayName"
+                placeholder="科技日报智能体"
+                required
+              />
+            </label>
+            <label htmlFor="agent-token-name">
+              令牌名称
+              <Input
+                id="agent-token-name"
+                name="tokenName"
+                placeholder="主发布令牌"
+                required
+              />
+            </label>
+            <label htmlFor="agent-token-expiry">
+              过期时间（可选）
+              <Input
+                id="agent-token-expiry"
+                name="expiresAt"
+                type="datetime-local"
+              />
+            </label>
+            <fieldset className="form-wide">
+              <legend>允许发布的栏目</legend>
+              <div className="category-admin-list">
+                {categories
+                  .filter((category) => category.enabled)
+                  .map((category) => (
+                    <label key={category.slug} className="checkbox-line">
+                      <input
+                        name="categories"
+                        type="checkbox"
+                        value={category.slug}
+                      />
+                      {category.name}
+                    </label>
+                  ))}
+              </div>
+            </fieldset>
+            <Button type="submit">签发独立令牌</Button>
           </form>
         </TabsContent>
 

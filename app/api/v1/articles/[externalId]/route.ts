@@ -14,10 +14,14 @@ export async function PUT(
   const requestId = randomUUID();
   const auth = verifyUploadRequest(request);
   if (!auth.ok) {
-    return NextResponse.json(
+    const response = NextResponse.json(
       { error: { code: auth.code, requestId } },
       { status: auth.status, headers: { 'Cache-Control': 'no-store' } },
     );
+    if ('retryAfterSeconds' in auth) {
+      response.headers.set('Retry-After', String(auth.retryAfterSeconds));
+    }
+    return response;
   }
 
   try {
@@ -26,7 +30,10 @@ export async function PUT(
     const result = await submitArticle(
       input,
       request.headers.get('idempotency-key') ?? '',
-      { expectedExternalId: externalId },
+      {
+        expectedExternalId: externalId,
+        principal: auth.principal ?? undefined,
+      },
     );
     return NextResponse.json(result, {
       status: 200,

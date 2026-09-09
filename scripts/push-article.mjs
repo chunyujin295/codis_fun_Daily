@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 function showHelp() {
   console.log(`Usage:
@@ -7,14 +8,17 @@ function showHelp() {
 
 Quick setup:
   Copy .env.agent.example to .env.agent once, then fill in the site URL
-  and shared upload token. If metadata.json is omitted, the script reads
+  and independently issued upload token. If metadata.json is omitted, the script reads
   <article-name>.metadata.json next to the HTML file.
 
 Environment:
   DAILY_BASE_URL         Default: http://127.0.0.1:3000/Daily
-  DAILY_UPLOAD_TOKEN     Required shared upload token
+  DAILY_UPLOAD_TOKEN     Required independently issued upload token
   DAILY_UPLOAD_PASSWORD  Backward-compatible alias for DAILY_UPLOAD_TOKEN
   DAILY_IDEMPOTENCY_KEY  Optional; defaults to a hash of metadata + HTML
+
+This file has no package dependencies. On a machine without this repository:
+  node --env-file=.env.agent push-article.mjs <article.html> [metadata.json]
 `);
 }
 
@@ -82,29 +86,51 @@ const endpoint = update
   ? `${normalizedBase}/api/v1/articles/${encodeURIComponent(metadata.externalId)}`
   : `${normalizedBase}/api/v1/articles`;
 
-const response = await fetch(endpoint, {
-  method: update ? 'PUT' : 'POST',
-  headers: {
-    Authorization: `Bearer ${password}`,
-    'Content-Type': 'application/json; charset=utf-8',
-    'Idempotency-Key': idempotencyKey,
-  },
-  body,
-});
-const result = await response.json().catch(() => ({
-  error: { code: 'INVALID_SERVER_RESPONSE' },
-}));
+const retryScheduleMs = [0, 2_000, 10_000, 30_000];
+let response;
+let result;
+for (let attempt = 0; attempt < retryScheduleMs.length; attempt += 1) {
+  if (retryScheduleMs[attempt] > 0) {
+    await sleep(retryScheduleMs[attempt]);
+  }
+  try {
+    response = await fetch(endpoint, {
+      method: update ? 'PUT' : 'POST',
+      headers: {
+        Authorization: `Bearer ${password}`,
+        'Content-Type': 'application/json; charset=utf-8',
+        'Idempotency-Key': idempotencyKey,
+      },
+      body,
+      signal: AbortSignal.timeout(60_000),
+    });
+  } catch (error) {
+    if (attempt === retryScheduleMs.length - 1) throw error;
+    continue;
+  }
+
+  result = await response.json().catch(() => ({
+    error: { code: 'INVALID_SERVER_RESPONSE' },
+  }));
+  const retryable = response.status === 429 || response.status >= 500;
+  if (!retryable || attempt === retryScheduleMs.length - 1) break;
+
+  const retryAfterSeconds = Number(response.headers.get('retry-after'));
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+    retryScheduleMs[attempt + 1] = Math.min(retryAfterSeconds * 1_000, 60_000);
+  }
+}
+
+if (!response || !result) {
+  throw new Error('UPLOAD_FAILED_WITHOUT_RESPONSE');
+}
 const publicUrl = result.article?.url
   ? new URL(result.article.url, baseUrl.origin).toString()
   : undefined;
 
 if (!response.ok) {
   console.error(
-    JSON.stringify(
-      { status: response.status, response: result },
-      null,
-      2,
-    ),
+    JSON.stringify({ status: response.status, response: result }, null, 2),
   );
   process.exitCode = 1;
 } else {
