@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: 'Daily Knowledge · 每日知识年轮',
   description: '沿时间树浏览每日整理的科技、医疗与密码学文章。',
   icons: {
-    icon: '/icon.png',
+    icon: '/Daily/icon.png',
   },
 };
 
