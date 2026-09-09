@@ -268,9 +268,7 @@ export default function Home() {
 
       <header className="site-header">
         <Link className="brand" href="/" aria-label="Daily Knowledge 首页">
-          <span className="brand-mark" aria-hidden="true">
-            <Leaf size={18} strokeWidth={2.2} />
-          </span>
+          <img className="brand-mark" src="/Daily/icon.png" alt="" width={18} height={18} />
           <span>
             <strong>Daily Knowledge</strong>
             <small>每日知识年轮</small>
