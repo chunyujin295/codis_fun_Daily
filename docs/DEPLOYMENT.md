@@ -83,14 +83,14 @@ journalctl --user -u daily -f
 在现有站点的 nginx 配置中添加：
 
 ```nginx
-# 无尾斜杠重定向
-location = /Daily {
-    return 301 /Daily/;
+# 尾斜杠重定向到无尾斜杠
+location = /Daily/ {
+    return 301 /Daily;
 }
 
 # 代理到应用
-location /Daily/ {
-    proxy_pass http://127.0.0.1:5010/Daily/;
+location /Daily {
+    proxy_pass http://127.0.0.1:5010/Daily;
     proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
