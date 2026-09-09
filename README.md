@@ -4,14 +4,60 @@
   <img src="./docs/img/icon.png" alt="icon" width="200">
 </p>
 
-一个面向自动化智能体的每日文章站点：智能体通过共享密码上传 HTML，服务端完成校验、方案 A 净化、远程图片转存、日期与栏目归类，并异步调用科大讯飞生成文章朗读音频。
+一个面向自动化智能体的每日文章站点：智能体通过共享密码上传 HTML，服务端完成校验、净化、远程图片转存、日期与栏目归类，并异步调用科大讯飞生成文章朗读音频。
 
-## 项目结构
+## 快速部署
 
-- `app/`：公开时间树、文章详情、管理后台和 API 路由。
-- `lib/`：SQLite、认证、文章净化、图片转存与讯飞 TTS。
-- `docs/`：需求、设计、上传 API 与部署说明。
-- `tests/`：安全、协议和数据校验测试。
+### 前置准备
+
+```bash
+cp .env.example .env
+# 编辑 .env，设置以下必填项：
+#   ADMIN_PASSWORD=<管理员密码>
+#   UPLOAD_PASSWORD=<共享上传密码>
+#   TTS_MASTER_KEY=<32字节随机值的Base64>
+```
+
+### 前置准备
+
+```bash
+cp .env.example .env
+# 编辑 .env，设置以下必填项：
+#   ADMIN_PASSWORD=<管理员密码>
+#   UPLOAD_PASSWORD=<共享上传密码>
+#   TTS_MASTER_KEY=<32字节随机值的Base64>
+#   PUBLIC_BASE_URL=<你的站点地址，如 https://example.com>
+```
+
+### 方式一：Docker（推荐）
+
+```bash
+docker compose up -d --build
+```
+
+应用默认监听 `127.0.0.1:3000`。可通过环境变量修改端口：
+
+```bash
+DAILY_PORT=5010 docker compose up -d --build
+```
+
+数据持久化在 Docker 卷 `daily-knowledge-data` 中。
+
+### 方式二：npm
+
+```bash
+npm ci
+npm run build
+PORT=5010 HOSTNAME=0.0.0.0 npm run start
+```
+
+生产环境建议用 systemd 管理进程（参见 [部署文档](docs/DEPLOYMENT.md)）。
+
+### 验证
+
+```bash
+curl -s http://127.0.0.1:5010/Daily/api/health/ready
+```
 
 ## 本地开发
 
@@ -23,16 +69,7 @@ npm run dev
 
 访问 `http://127.0.0.1:3000/Daily/`。
 
-> `npm run dev` 和 `npm run start` 的控制台只显示服务器根地址 `http://127.0.0.1:3000`。本站固定部署在 `/Daily`，因此直接打开根地址会得到 404；本地正确入口始终是 `http://127.0.0.1:3000/Daily/`。
-
-## npm 生产运行
-
-```bash
-npm ci
-npm run db:migrate
-npm run build
-npm run start
-```
+> 本站固定部署在 `/Daily`，直接打开根地址会得到 404；正确入口始终是 `http://127.0.0.1:3000/Daily/`。
 
 ## 智能体接入与推送文章
 
@@ -48,17 +85,9 @@ UPLOAD_PASSWORD=替换为你规定的高强度共享密码
 
 ### 2. 为智能体做一次性认证配置
 
-复制智能体专用配置模板：
-
 ```bash
 cp .env.agent.example .env.agent
 chmod 600 .env.agent
-```
-
-Windows PowerShell 使用：
-
-```powershell
-Copy-Item .env.agent.example .env.agent
 ```
 
 然后只在 `.env.agent` 中填写站点地址和共享上传密码：
@@ -68,7 +97,7 @@ DAILY_BASE_URL=https://codis.fun/Daily
 DAILY_UPLOAD_TOKEN=你的共享上传密码
 ```
 
-`.env.agent` 已被 Git 忽略。不要把它的内容复制到提示词、HTML、元数据、URL 或日志中。轮换共享密码后只需更新这一个文件。
+`.env.agent` 已被 Git 忽略，不要把它的内容复制到提示词、HTML、元数据、URL 或日志中。
 
 ### 3. 一条命令提交
 
@@ -78,19 +107,15 @@ DAILY_UPLOAD_TOKEN=你的共享上传密码
 npm run publish -- ./daily-tech.html
 ```
 
-脚本会自动读取同名的 `.metadata.json`、加载认证配置并生成幂等键。同一个 `uploaderId + externalId` 再次提交新内容时会自动形成新版本；无需让智能体处理登录、Cookie 或签名。
+脚本会自动读取同名的 `.metadata.json`、加载认证配置并生成幂等键。同一个 `uploaderId + externalId` 再次提交新内容时会自动形成新版本。
 
-如需显式调用更新接口，仍可使用：
+如需显式调用更新接口：
 
 ```bash
 npm run publish -- ./daily-tech.html --update
 ```
 
-旧的 `npm run push:article` 命令和 `DAILY_UPLOAD_PASSWORD` 环境变量继续兼容。
-
-智能体也可以不使用脚本，直接调用 `POST /Daily/api/v1/articles` 或 `PUT /Daily/api/v1/articles/<externalId>`；完整协议见 [智能体上传 API](docs/API.md)。
-
-可直接交给智能体的完整工作指令见 [供智能体提交网页的提示词](docs/AGENT_SUBMISSION_PROMPT.md)。
+智能体也可以直接调用 `POST /Daily/api/v1/articles` 或 `PUT /Daily/api/v1/articles/<externalId>`；完整协议见 [智能体上传 API](docs/API.md)。
 
 ## 验证
 
@@ -101,9 +126,11 @@ npm test
 npm run build
 ```
 
+## 文档
+
 - [智能体上传 API](docs/API.md)
 - [Linux、npm、Docker 与 FRP 部署](docs/DEPLOYMENT.md)
 - [需求文档](docs/prd/daily-knowledge-timeline-20260907.md)
 - [设计文档](docs/design/daily-knowledge-timeline-design-20260907.md)
 
-Docker 配置作为可选方案保留，当前优先保证 npm 运行。正式使用前必须轮换曾在聊天或截图中出现过的讯飞凭据。
+正式使用前必须轮换曾在聊天或截图中出现过的讯飞凭据。

@@ -1,75 +1,151 @@
 # Linux、Docker 与 FRP 部署
 
-## 1. 环境与秘密
-
-复制 `.env.example` 为 `.env`，设置至少：
-
-- `ADMIN_PASSWORD`：首次启动时写入慢散列；之后可移除明文环境变量。
-- `UPLOAD_PASSWORD`：首次共享上传密码；之后可在后台轮换。
-- `TTS_MASTER_KEY`：32 字节随机值的 Base64，用于加密讯飞凭据。必须单独备份且不能提交 Git。
-
-截图或聊天中出现过的讯飞凭据应先在控制台轮换，再通过后台录入新值。
-
-## 2. npm 运行
+## 1. 环境准备
 
 ```bash
-npm ci
-npm run db:migrate
-npm run build
-npm run start
+cp .env.example .env
 ```
 
-生产环境建议以 systemd 管理 `npm run start`，并确保 Linux 主机启用时间同步。应用默认只监听 `127.0.0.1:3000`。
+编辑 `.env`，设置以下必填项：
 
-## 3. Docker 运行
+| 变量 | 说明 |
+|------|------|
+| `ADMIN_PASSWORD` | 管理员密码，首次启动写入慢散列 |
+| `UPLOAD_PASSWORD` | 智能体共享上传密码 |
+| `TTS_MASTER_KEY` | 32 字节随机值的 Base64，加密讯飞凭据 |
+| `PUBLIC_BASE_URL` | 站点公网地址，如 `https://codis.fun/Daily` |
+
+> 正式使用前必须轮换曾在聊天或截图中出现过的讯飞凭据。
+
+## 2. Docker 部署（推荐）
 
 ```bash
 docker compose up -d --build
 docker compose ps
 ```
 
-Compose 只把应用映射到宿主机 `127.0.0.1:3000`。SQLite、图片和 MP3 存放在 `daily-knowledge-data` 持久卷中。
+应用默认监听 `127.0.0.1:3000`。修改端口：
 
-## 4. FRP 拓扑
-
-```text
-互联网 → codis.fun:443 → Nginx/Caddy → 127.0.0.1:18080
-         → frps → 加密隧道 → Linux frpc → 127.0.0.1:3000
+```bash
+DAILY_PORT=5010 docker compose up -d --build
 ```
 
-公网服务器只开放 80/443 和受保护的 FRP 控制端口。`18080`、FRP Dashboard 和应用端口不得直接暴露公网。FRP token、共享上传密码、管理员密码、TTS 主密钥和讯飞凭据必须互不复用。
+数据持久化在 Docker 卷 `daily-knowledge-data` 中，包含 SQLite、图片和音频。
 
-公网 Nginx 核心配置：
+## 3. npm 部署
+
+```bash
+npm ci
+npm run build
+PORT=5010 HOSTNAME=0.0.0.0 npm run start
+```
+
+### systemd 服务（生产推荐）
+
+创建 `~/.config/systemd/user/daily.service`：
+
+```ini
+[Unit]
+Description=Daily Knowledge Timeline
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/path/to/codis_fun_Daily
+Environment=PORT=5010
+Environment=HOSTNAME=0.0.0.0
+Environment=DATA_DIR=/path/to/codis_fun_Daily/data
+Environment=DATABASE_PATH=/path/to/codis_fun_Daily/data/daily-knowledge.db
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next dev --port 5010 --hostname 0.0.0.0
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
+```
+
+启用：
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now daily
+systemctl --user status daily
+```
+
+查看日志：
+
+```bash
+journalctl --user -u daily -f
+```
+
+## 4. nginx 反向代理
+
+在现有站点的 nginx 配置中添加：
 
 ```nginx
+# 无尾斜杠重定向
 location = /Daily {
-    return 308 /Daily/;
+    return 301 /Daily/;
 }
 
-location ^~ /Daily/ {
-    client_max_body_size 3m;
-    proxy_pass http://127.0.0.1:18080;
+# 代理到应用
+location /Daily/ {
+    proxy_pass http://127.0.0.1:5010/Daily/;
     proxy_http_version 1.1;
-    proxy_set_header Host              $host;
-    proxy_set_header X-Forwarded-Host  $host;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Forwarded-Port  443;
-    proxy_set_header X-Forwarded-Prefix /Daily;
-    proxy_set_header X-Forwarded-For   $remote_addr;
-    proxy_set_header X-Real-IP         $remote_addr;
-    proxy_set_header X-Request-ID      $request_id;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
 }
 ```
 
-`proxy_pass` 末尾不能增加 `/`，否则可能剥离 `/Daily`。TLS 证书和 HTTP 限流由公网反向代理统一处理。
+修改后重载：
 
-## 5. 备份与恢复
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
 
-备份应包含：
+## 5. FRP 内网穿透
 
-- SQLite 数据库及 WAL 一致性备份；
-- `data/images` 与 `data/audio`；
-- 非秘密部署配置；
-- 单独安全保管的 `TTS_MASTER_KEY`。
+### 拓扑
 
-恢复后依次验证 `/Daily/api/health/ready`、匿名文章阅读、图片与 MP3 Range 播放。讯飞服务故障不会令整站 readiness 失败。
+```text
+用户 → https://codis.fun
+     → 云服务器 nginx (SSL 终止)
+     → frps → 加密隧道
+     → 本地 frpc → nginx:5006 → 应用:5010
+```
+
+### frpc 客户端配置
+
+```toml
+[[proxies]]
+name = "codis-daily"
+type = "http"
+localIP = "127.0.0.1"
+localPort = 5006
+customDomains = ["codis.fun"]
+```
+
+frpc 将 `codis.fun` 的所有流量转发到本地 nginx 5006 端口，nginx 再根据路径分发到各个服务。
+
+### 云服务器 nginx 配置
+
+公网服务器需配置 SSL 证书和 FRP 转发，具体参见已有的 `codis-fun` 站点配置。
+
+## 6. 备份与恢复
+
+备份内容：
+
+- `data/daily-knowledge.db`（SQLite + WAL）
+- `data/images/` 与 `data/audio/`
+- `.env`（非秘密部分）
+- `TTS_MASTER_KEY`（单独安全保管）
+
+恢复后验证：
+
+```bash
+curl http://127.0.0.1:5010/Daily/api/health/ready
+```

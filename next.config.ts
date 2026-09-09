@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   basePath: '/Daily',
+  trailingSlash: true,
   output: 'standalone',
   poweredByHeader: false,
   serverExternalPackages: ['better-sqlite3', 'sharp', 'ws'],
