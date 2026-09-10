@@ -2,12 +2,11 @@ import { redirect } from 'next/navigation';
 
 import { AdminLoginForm } from '@/components/admin-login-form';
 import { getCurrentAdminSession, isAdminPasswordConfigured } from '@/lib/auth';
-import { BASE_PATH } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminLoginPage() {
-  if (await getCurrentAdminSession()) redirect(`${BASE_PATH}/admin`);
+  if (await getCurrentAdminSession()) redirect('/admin');
   return (
     <main className="admin-login-page">
       <section className="admin-login-card">

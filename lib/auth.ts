@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { NextRequest } from 'next/server';
 
-import { ADMIN_COOKIE_NAME, BASE_PATH } from '@/lib/constants';
+import { ADMIN_COOKIE_NAME } from '@/lib/constants';
 import { hashPassword, sha256, verifyPassword } from '@/lib/crypto';
 import { getDb } from '@/lib/db';
 import { checkRateLimit } from '@/lib/rate-limit';
@@ -399,7 +399,7 @@ export async function getCurrentAdminSession() {
 
 export async function requireAdminPage() {
   const session = await getCurrentAdminSession();
-  if (!session) redirect(`${BASE_PATH}/admin/login`);
+  if (!session) redirect('/admin/login');
   return session;
 }
 
