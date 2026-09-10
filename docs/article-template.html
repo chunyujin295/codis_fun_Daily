@@ -10,15 +10,20 @@
        * 外层页面框架（顶栏、返回按钮等）由服务端自动添加，智能体无需关心
        */
       :root {
-        --color-background: #07110f;
-        --color-foreground: #f2f7f4;
-        --color-primary: #d9f99d;
-        --color-accent: #73fbd3;
-        --color-muted: #82958e;
-        --color-border: rgb(195 229 215 / 14%);
-        --color-card: #0d1b18;
-        --color-code-bg: #101f1b;
-        --font-sans: 'Noto Sans SC', 'Microsoft YaHei UI', 'PingFang SC', system-ui, sans-serif;
+        color-scheme: light dark;
+        --color-background: #f4f6fb;
+        --color-foreground: #172033;
+        --color-primary: #4f46e5;
+        --color-accent: #0891b2;
+        --color-muted: #7b8496;
+        --color-border: rgb(55 65 81 / 13%);
+        --color-card: #ffffff;
+        --color-soft: #eef1f7;
+        --color-code-bg: #111827;
+        --color-code: #e5e7eb;
+        --font-sans:
+          'Noto Sans SC', 'Microsoft YaHei UI', 'PingFang SC', system-ui,
+          sans-serif;
         --font-heading: 'Noto Serif SC', 'Source Han Serif SC', STSong, serif;
         --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
       }
@@ -30,6 +35,31 @@
         font-family: var(--font-sans);
         font-size: 16px;
         line-height: 1.6;
+        background-image:
+          radial-gradient(
+            circle at 8% -8%,
+            rgb(79 70 229 / 10%),
+            transparent 31rem
+          ),
+          linear-gradient(rgb(55 65 81 / 5%) 1px, transparent 1px),
+          linear-gradient(90deg, rgb(55 65 81 / 5%) 1px, transparent 1px);
+        background-size:
+          auto,
+          72px 72px,
+          72px 72px;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --color-background: #0b1020;
+          --color-foreground: #eef2ff;
+          --color-primary: #9b9cff;
+          --color-accent: #55d8e8;
+          --color-muted: #8994a9;
+          --color-border: rgb(207 215 255 / 13%);
+          --color-card: #121a2d;
+          --color-soft: #182136;
+        }
       }
 
       /* ===== 文章内容容器 ===== */
@@ -37,8 +67,8 @@
         max-width: 780px;
         margin: 0 auto;
         padding: 3rem 1.5rem 5rem;
-        color: #dce7e2;
-        font-size: 1.05rem;
+        color: var(--color-foreground);
+        font-size: 1.08rem;
         line-height: 2;
       }
 
@@ -48,7 +78,7 @@
       .article-content h3,
       .article-content h4 {
         margin: 2.3em 0 0.75em;
-        color: #f4faf6;
+        color: var(--color-foreground);
         font-family: var(--font-heading);
         line-height: 1.35;
       }
@@ -96,11 +126,13 @@
 
       /* ===== 引用 ===== */
       .article-content blockquote {
-        border-left: 3px solid #73fbd3;
-        border-radius: 0 0.8rem 0.8rem 0;
-        background: rgb(115 251 211 / 5%);
-        color: #b9ccc5;
-        padding: 0.8rem 1.1rem;
+        border: 1px solid
+          color-mix(in srgb, var(--color-primary), transparent 78%);
+        border-left: 4px solid var(--color-primary);
+        border-radius: 0.25rem 0.95rem 0.95rem 0.25rem;
+        background: color-mix(in srgb, var(--color-primary), transparent 92%);
+        color: var(--color-foreground);
+        padding: 1rem 1.2rem;
         margin: 1.25rem 0;
       }
 
@@ -111,7 +143,8 @@
       /* ===== 代码 ===== */
       .article-content code {
         border-radius: 0.35rem;
-        background: var(--color-code-bg);
+        border: 1px solid var(--color-border);
+        background: var(--color-soft);
         padding: 0.12rem 0.35rem;
         font-family: var(--font-mono);
         font-size: 0.9em;
@@ -120,9 +153,10 @@
       .article-content pre {
         overflow-x: auto;
         border: 1px solid var(--color-border);
-        border-radius: 0.9rem;
-        background: #050c0a;
-        padding: 1rem;
+        border-radius: 1rem;
+        background: var(--color-code-bg);
+        color: var(--color-code);
+        padding: 1.15rem;
         margin: 1.25rem 0;
       }
 
@@ -133,26 +167,31 @@
 
       /* ===== 链接 ===== */
       .article-content a {
-        color: #73fbd3;
+        color: var(--color-primary);
         text-decoration: underline;
         text-underline-offset: 0.2rem;
       }
 
       .article-content a:hover {
-        color: #d9f99d;
+        color: var(--color-accent);
       }
 
       /* ===== 图片 ===== */
       .article-content img {
         max-width: 100%;
         height: auto;
-        border-radius: 0.9rem;
+        border-radius: 1rem;
+        box-shadow: 0 24px 70px rgb(30 41 59 / 12%);
       }
 
       /* ===== 表格 ===== */
       .article-content table {
         width: 100%;
-        border-collapse: collapse;
+        overflow: hidden;
+        border-collapse: separate;
+        border-spacing: 0;
+        border: 1px solid var(--color-border);
+        border-radius: 0.9rem;
         margin: 1.25rem 0;
       }
 
@@ -164,7 +203,7 @@
       }
 
       .article-content th {
-        background: rgb(255 255 255 / 5%);
+        background: var(--color-soft);
         font-weight: 600;
       }
 
@@ -182,7 +221,7 @@
 
       /* ===== 强调文本 ===== */
       .article-content strong {
-        color: #f4faf6;
+        color: var(--color-foreground);
         font-weight: 600;
       }
 
@@ -199,7 +238,7 @@
 
       /* ===== 高亮文本 ===== */
       .article-content mark {
-        background: rgb(217 249 157 / 25%);
+        background: rgb(251 191 36 / 28%);
         color: inherit;
         padding: 0.1em 0.3em;
         border-radius: 0.2em;
@@ -209,12 +248,17 @@
   <body>
     <article class="article-content">
       <h2>今日 AI 技术进展</h2>
-      <p>OpenAI 于昨日正式发布了 GPT-5 模型，这是继 GPT-4 之后的重大升级。新模型在推理能力、代码生成和多语言理解方面均有显著提升。</p>
+      <p>
+        OpenAI 于昨日正式发布了 GPT-5 模型，这是继 GPT-4
+        之后的重大升级。新模型在推理能力、代码生成和多语言理解方面均有显著提升。
+      </p>
 
       <h3>核心改进</h3>
       <ul>
         <li><strong>推理能力</strong>：在复杂逻辑推理任务上准确率提升 30%</li>
-        <li><strong>代码生成</strong>：支持更长上下文窗口，一次生成完整项目结构</li>
+        <li>
+          <strong>代码生成</strong>：支持更长上下文窗口，一次生成完整项目结构
+        </li>
         <li><strong>多模态</strong>：原生支持图像、音频和视频理解</li>
       </ul>
 
@@ -274,16 +318,27 @@ console.log(response.choices[0].message.content);</code></pre>
       </ol>
 
       <figure>
-        <img src="https://via.placeholder.com/780x400/0d1b18/73fbd3?text=GPT-5+Architecture" alt="GPT-5 架构示意图" loading="lazy" />
+        <img
+          src="https://via.placeholder.com/780x400/0d1b18/73fbd3?text=GPT-5+Architecture"
+          alt="GPT-5 架构示意图"
+          loading="lazy"
+        />
         <figcaption>图 1：GPT-5 架构示意图</figcaption>
       </figure>
 
       <h3>未来展望</h3>
-      <p>OpenAI 表示，<strong>GPT-5</strong> 将在未来几个月内逐步向开发者开放。同时，公司正在积极研究更安全、更可控的 AI 系统，确保技术进步能够惠及全人类。</p>
+      <p>
+        OpenAI 表示，<strong>GPT-5</strong>
+        将在未来几个月内逐步向开发者开放。同时，公司正在积极研究更安全、更可控的
+        AI 系统，确保技术进步能够惠及全人类。
+      </p>
 
       <hr />
 
-      <p><mark>注意</mark>：本文中的数据来源于 OpenAI 官方发布的测试报告，具体性能可能因使用场景而异。</p>
+      <p>
+        <mark>注意</mark>：本文中的数据来源于 OpenAI
+        官方发布的测试报告，具体性能可能因使用场景而异。
+      </p>
     </article>
   </body>
 </html>

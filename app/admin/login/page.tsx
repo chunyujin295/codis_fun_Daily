@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { AdminLoginForm } from '@/components/admin-login-form';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { getCurrentAdminSession, isAdminPasswordConfigured } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -9,6 +10,9 @@ export default async function AdminLoginPage() {
   if (await getCurrentAdminSession()) redirect('/admin');
   return (
     <main className="admin-login-page">
+      <div className="login-theme-toggle">
+        <ThemeToggle />
+      </div>
       <section className="admin-login-card">
         <span className="admin-kicker">Daily Knowledge</span>
         <h1>管理后台</h1>

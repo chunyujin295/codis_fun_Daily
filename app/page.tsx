@@ -2,18 +2,19 @@
 
 import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   CalendarDays,
   ChevronRight,
   Clock3,
-  Leaf,
   Settings2,
   Sparkles,
   Volume2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 type CategoryOption = { id: string; label: string; color: string };
 type TimelineArticle = {
@@ -268,7 +269,13 @@ export default function Home() {
 
       <header className="site-header">
         <Link className="brand" href="/" aria-label="Daily Knowledge 首页">
-          <img className="brand-mark" src="/Daily/icon.png" alt="" width={18} height={18} />
+          <Image
+            className="brand-mark"
+            src="/Daily/icon.png"
+            alt=""
+            width={18}
+            height={18}
+          />
           <span>
             <strong>Daily Knowledge</strong>
             <small>每日知识年轮</small>
@@ -280,10 +287,13 @@ export default function Home() {
           最新日期已更新 {timelineDays[0]?.branches.length ?? 0} 个栏目
         </div>
 
-        <Link className="admin-link" href="/admin/login">
-          <Settings2 aria-hidden="true" />
-          管理后台
-        </Link>
+        <div className="header-actions">
+          <ThemeToggle />
+          <Link className="admin-link" href="/admin/login">
+            <Settings2 aria-hidden="true" />
+            管理后台
+          </Link>
+        </div>
       </header>
 
       <section className="timeline-intro" aria-labelledby="timeline-title">

@@ -35,6 +35,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { BASE_PATH } from '@/lib/constants';
 
 type AdminArticle = {
@@ -130,7 +131,13 @@ export function AdminDashboard({
   const [activeTab, setActiveTab] = useState(() => {
     // 从 URL hash 中读取初始 tab
     const hash = window.location.hash.slice(1);
-    const validTabs = ['articles', 'upload', 'categories', 'agents', 'settings'];
+    const validTabs = [
+      'articles',
+      'upload',
+      'categories',
+      'agents',
+      'settings',
+    ];
     return validTabs.includes(hash) ? hash : 'articles';
   });
 
@@ -383,6 +390,7 @@ export function AdminDashboard({
           <h1>管理后台</h1>
         </div>
         <div className="admin-header-actions">
+          <ThemeToggle />
           <Link href="/">查看公开站点</Link>
           <Button variant="outline" onClick={logout}>
             <LogOut />
@@ -704,15 +712,30 @@ export function AdminDashboard({
                           <TableCell>
                             <div>{uploader.displayName}</div>
                             {uploader.displayName !== uploader.id && (
-                              <small style={{ color: 'var(--muted-foreground)' }}>
+                              <small
+                                style={{ color: 'var(--muted-foreground)' }}
+                              >
                                 {uploader.id}
                               </small>
                             )}
                           </TableCell>
                           <TableCell>
                             <div>{token.name}</div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.25rem 0' }}>
-                              <code style={{ userSelect: 'all', cursor: 'pointer', fontSize: '0.85em' }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                margin: '0.25rem 0',
+                              }}
+                            >
+                              <code
+                                style={{
+                                  userSelect: 'all',
+                                  cursor: 'pointer',
+                                  fontSize: '0.85em',
+                                }}
+                              >
                                 {token.tokenPrefix}…
                               </code>
                               <Button
@@ -752,7 +775,9 @@ export function AdminDashboard({
                               <Button
                                 type="button"
                                 size="sm"
-                                variant={token.enabled ? 'destructive' : 'outline'}
+                                variant={
+                                  token.enabled ? 'destructive' : 'outline'
+                                }
                                 onClick={() =>
                                   void setTokenEnabled(token.id, !token.enabled)
                                 }
@@ -796,14 +821,14 @@ export function AdminDashboard({
                           <TableCell>
                             <div>{uploader.displayName}</div>
                             {uploader.displayName !== uploader.id && (
-                              <small style={{ color: 'var(--muted-foreground)' }}>
+                              <small
+                                style={{ color: 'var(--muted-foreground)' }}
+                              >
                                 {uploader.id}
                               </small>
                             )}
                           </TableCell>
-                          <TableCell colSpan={5}>
-                            尚未签发独立令牌
-                          </TableCell>
+                          <TableCell colSpan={5}>尚未签发独立令牌</TableCell>
                         </TableRow>,
                       ],
                 )}

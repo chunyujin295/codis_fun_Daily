@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
 import { ReadAloudButton } from '@/components/audio-player-provider';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { getArticleBySlug } from '@/lib/articles';
 
 export const dynamic = 'force-dynamic';
@@ -23,9 +24,12 @@ export default async function ArticlePage({
         <Link href="/" className="back-link">
           <ArrowLeft /> 返回时间树
         </Link>
-        <span className="article-brand">
-          <Leaf /> Daily Knowledge
-        </span>
+        <div className="article-topbar-actions">
+          <span className="article-brand">
+            <Leaf /> Daily Knowledge
+          </span>
+          <ThemeToggle />
+        </div>
       </header>
 
       <article className="article-reading-shell">
