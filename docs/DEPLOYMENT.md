@@ -18,7 +18,39 @@ cp .env.example .env
 
 > 正式使用前必须轮换曾在聊天或截图中出现过的讯飞凭据。
 
-服务启动后，管理员应在 `/Daily/admin` 的“智能体”页为每个远程智能体签发独立令牌，并限定允许发布的栏目。独立令牌明文只显示一次。
+服务启动后，管理员应在 `/Daily/admin` 的"智能体"页为每个远程智能体签发独立令牌，并限定允许发布的栏目。独立令牌明文只显示一次。
+
+### 修改管理员密码
+
+密码只在首次启动时从环境变量写入数据库。如需修改：
+
+**方法一：修改环境变量并重启**
+
+```bash
+# 1. 修改 .env 文件
+ADMIN_PASSWORD=你的新密码
+
+# 2. 重启服务
+docker compose restart  # Docker 部署
+# 或
+npm run build && npm run start  # npm 部署
+```
+
+**方法二：直接操作数据库**
+
+```bash
+# 进入容器或服务器
+sqlite3 data/daily-knowledge.db
+
+# 删除旧密码（下次启动会用 .env 中的新密码重新写入）
+DELETE FROM settings WHERE key = 'admin_password_hash';
+
+# 重启服务
+```
+
+**方法三：通过管理界面修改上传密码**
+
+登录后台 → 设置 → 上传密码（此方法只修改上传密码，不修改管理员密码）
 
 ## 2. Docker 部署（推荐）
 
