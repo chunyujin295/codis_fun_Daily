@@ -9,7 +9,6 @@ import {
   ChevronRight,
   Clock3,
   Settings2,
-  Sparkles,
   Volume2,
 } from 'lucide-react';
 
@@ -40,7 +39,7 @@ type TimelineDay = {
 };
 
 const initialCategories: CategoryOption[] = [
-  { id: 'all', label: '全部栏目', color: '#d9f99d' },
+  { id: 'all', label: '全部', color: '#d9f99d' },
   { id: 'technology', label: '科技新闻', color: '#73fbd3' },
   { id: 'medical', label: '医疗', color: '#ff9db0' },
   { id: 'cryptography', label: '密码学', color: '#a78bfa' },
@@ -264,7 +263,7 @@ export default function Home() {
   return (
     <main className="site-shell">
       <a className="skip-link" href="#timeline">
-        跳到时间树
+        跳到文章列表
       </a>
 
       <header className="site-header">
@@ -278,38 +277,33 @@ export default function Home() {
           />
           <span>
             <strong>Daily Knowledge</strong>
-            <small>每日知识年轮</small>
+            <small>知识索引</small>
           </span>
         </Link>
 
         <div className="header-status" aria-label="站点状态">
           <span className="status-dot" />
-          最新日期已更新 {timelineDays[0]?.branches.length ?? 0} 个栏目
+          {timelineDays[0]?.branches.length ?? 0} 个栏目已更新
         </div>
 
         <div className="header-actions">
           <ThemeToggle />
           <Link className="admin-link" href="/admin/login">
             <Settings2 aria-hidden="true" />
-            管理后台
+            管理
           </Link>
         </div>
       </header>
 
       <section className="timeline-intro" aria-labelledby="timeline-title">
         <div>
-          <p className="eyebrow">
-            <Sparkles size={15} aria-hidden="true" />
-            {timelineDays[0]?.date ?? '每日更新'}
-          </p>
-          <h1 id="timeline-title">今天的知识，沿时间生长</h1>
+          <p className="eyebrow">{timelineDays[0]?.date ?? '每日更新'}</p>
+          <h1 id="timeline-title">每日更新</h1>
         </div>
-        <p className="intro-copy">
-          从最新一天向下浏览。日期是年轮，栏目是分枝，每一篇文章都是一片可被重新发现的叶子。
-        </p>
+        <p className="intro-copy">按日期浏览文章，也可以选择栏目筛选。</p>
       </section>
 
-      <nav className="category-filter" aria-label="按栏目筛选文章">
+      <nav className="category-filter" aria-label="栏目筛选">
         {availableCategories.map((category) => {
           const active = activeCategory === category.id;
           return (
@@ -329,11 +323,11 @@ export default function Home() {
         })}
         <span className="filter-date">
           <CalendarDays size={16} aria-hidden="true" />
-          Asia/Shanghai
+          北京时间
         </span>
       </nav>
 
-      <ol id="timeline" className="timeline-tree" aria-label="每日文章时间树">
+      <ol id="timeline" className="timeline-tree" aria-label="文章时间线">
         {visibleDays.map((day) => (
           <li key={day.date} className="timeline-day">
             <div className="date-node">
@@ -381,13 +375,13 @@ export default function Home() {
                           className="read-link"
                           href={`/articles/${article.slug}`}
                         >
-                          阅读
+                          查看
                           <ChevronRight size={16} aria-hidden="true" />
                         </Link>
                       </div>
                       <div className="audio-hint" aria-label="朗读状态：生成中">
                         <Volume2 size={15} aria-hidden="true" />
-                        朗读生成中
+                        音频生成中
                       </div>
                     </article>
                   ))}
@@ -399,8 +393,7 @@ export default function Home() {
       </ol>
 
       <footer className="site-footer">
-        <span>时间树尽头</span>
-        <p>新的文章会在通过校验后自动长出来。</p>
+        <span>已显示全部文章</span>
       </footer>
     </main>
   );

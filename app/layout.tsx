@@ -5,8 +5,8 @@ import './globals.css';
 import { AudioPlayerProvider } from '@/components/audio-player-provider';
 
 export const metadata: Metadata = {
-  title: 'Daily Knowledge · 每日知识年轮',
-  description: '沿时间树浏览每日整理的科技、医疗与密码学文章。',
+  title: 'Daily Knowledge',
+  description: '按日期和栏目浏览每日文章。',
   icons: {
     icon: '/Daily/icon.png',
   },
