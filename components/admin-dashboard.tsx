@@ -672,7 +672,7 @@ export function AdminDashboard({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {uploaders.flatMap((uploader) =>
+              {(uploaders ?? []).flatMap((uploader) =>
                 uploader.tokens.length
                   ? uploader.tokens.map((token) => (
                       <TableRow key={token.id}>
