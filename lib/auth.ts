@@ -25,12 +25,14 @@ export type GeneratedUploadToken = {
   token: string;
   tokenHash: string;
   tokenPrefix: string;
+  tokenSecret: string;
 };
 
 export type AdminUploadToken = {
   id: string;
   name: string;
   tokenPrefix: string;
+  tokenSecret: string | null;
   enabled: number;
   expiresAt: string | null;
   lastUsedAt: string | null;
@@ -44,6 +46,7 @@ export type AdminUploader = {
   enabled: number;
   updatedAt: string;
   tokens: AdminUploadToken[];
+  articleCount: number;
 };
 
 type UploadTokenRow = {
@@ -67,6 +70,7 @@ export function generateUploadToken(): GeneratedUploadToken {
     token,
     tokenHash: sha256(token),
     tokenPrefix: `dk_live_${id.slice(0, 8)}`,
+    tokenSecret: secret,
   };
 }
 
@@ -109,15 +113,16 @@ export function issueUploadToken(input: {
     `).run(input.uploaderId, input.displayName, now, now);
     db.prepare(`
       INSERT INTO upload_tokens(
-        id, uploader_id, name, token_hash, token_prefix, enabled,
+        id, uploader_id, name, token_hash, token_prefix, token_secret, enabled,
         expires_at, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
     `).run(
       generated.id,
       input.uploaderId,
       input.tokenName,
       generated.tokenHash,
       generated.tokenPrefix,
+      generated.tokenSecret,
       input.expiresAt ?? null,
       now,
       now,
@@ -145,16 +150,17 @@ export function getAdminUploaders(): AdminUploader[] {
       SELECT id, display_name AS displayName, enabled, updated_at AS updatedAt
       FROM uploaders ORDER BY updated_at DESC, id
     `)
-    .all() as Omit<AdminUploader, 'tokens'>[];
+    .all() as Omit<AdminUploader, 'tokens' | 'articleCount'>[];
   const tokens = db
     .prepare(`
       SELECT id, uploader_id AS uploaderId, name, token_prefix AS tokenPrefix,
-        enabled, expires_at AS expiresAt, last_used_at AS lastUsedAt,
+        token_secret AS tokenSecret, enabled, expires_at AS expiresAt, last_used_at AS lastUsedAt,
         created_at AS createdAt
       FROM upload_tokens ORDER BY created_at DESC
     `)
     .all() as (Omit<AdminUploadToken, 'categories'> & {
     uploaderId: string;
+    tokenSecret: string | null;
   })[];
   const categoryRows = db
     .prepare(`
@@ -168,6 +174,20 @@ export function getAdminUploaders(): AdminUploader[] {
     values.push(row.category);
     categoriesByToken.set(row.tokenId, values);
   }
+
+  // 统计每个上传者的文章数量
+  const articleCounts = db
+    .prepare(`
+      SELECT uploader_id AS uploaderId, COUNT(*) AS articleCount
+      FROM articles
+      GROUP BY uploader_id
+    `)
+    .all() as { uploaderId: string; articleCount: number }[];
+  const articleCountMap = new Map<string, number>();
+  for (const row of articleCounts) {
+    articleCountMap.set(row.uploaderId, row.articleCount);
+  }
+
   const tokensByUploader = new Map<string, AdminUploadToken[]>();
   for (const token of tokens) {
     const values = tokensByUploader.get(token.uploaderId) ?? [];
@@ -181,6 +201,7 @@ export function getAdminUploaders(): AdminUploader[] {
   return uploaders.map((uploader) => ({
     ...uploader,
     tokens: tokensByUploader.get(uploader.id) ?? [],
+    articleCount: articleCountMap.get(uploader.id) ?? 0,
   }));
 }
 

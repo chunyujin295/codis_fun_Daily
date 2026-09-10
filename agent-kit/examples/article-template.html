@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>文章标题</title>
+    <style>
+      /*
+       * Daily Knowledge 文章内容样式参考
+       * 本模板展示智能体提交的 HTML 应使用的元素和样式
+       * 外层页面框架（顶栏、返回按钮等）由服务端自动添加，智能体无需关心
+       */
+      :root {
+        --color-background: #07110f;
+        --color-foreground: #f2f7f4;
+        --color-primary: #d9f99d;
+        --color-accent: #73fbd3;
+        --color-muted: #82958e;
+        --color-border: rgb(195 229 215 / 14%);
+        --color-card: #0d1b18;
+        --color-code-bg: #101f1b;
+        --font-sans: 'Noto Sans SC', 'Microsoft YaHei UI', 'PingFang SC', system-ui, sans-serif;
+        --font-heading: 'Noto Serif SC', 'Source Han Serif SC', STSong, serif;
+        --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+      }
+
+      body {
+        margin: 0;
+        background: var(--color-background);
+        color: var(--color-foreground);
+        font-family: var(--font-sans);
+        font-size: 16px;
+        line-height: 1.6;
+      }
+
+      /* ===== 文章内容容器 ===== */
+      .article-content {
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 3rem 1.5rem 5rem;
+        color: #dce7e2;
+        font-size: 1.05rem;
+        line-height: 2;
+      }
+
+      /* ===== 标题 ===== */
+      .article-content h1,
+      .article-content h2,
+      .article-content h3,
+      .article-content h4 {
+        margin: 2.3em 0 0.75em;
+        color: #f4faf6;
+        font-family: var(--font-heading);
+        line-height: 1.35;
+      }
+
+      .article-content h1 {
+        font-size: 2.2rem;
+        letter-spacing: -0.04em;
+      }
+
+      .article-content h2 {
+        font-size: 1.65rem;
+      }
+
+      .article-content h3 {
+        font-size: 1.35rem;
+      }
+
+      .article-content h4 {
+        font-size: 1.15rem;
+      }
+
+      /* ===== 段落与列表 ===== */
+      .article-content p,
+      .article-content ul,
+      .article-content ol,
+      .article-content blockquote,
+      .article-content pre,
+      .article-content table,
+      .article-content figure {
+        margin: 1.25rem 0;
+      }
+
+      .article-content p {
+        margin: 1.25rem 0;
+      }
+
+      .article-content ul,
+      .article-content ol {
+        padding-left: 1.5em;
+      }
+
+      .article-content li {
+        margin: 0.4em 0;
+      }
+
+      /* ===== 引用 ===== */
+      .article-content blockquote {
+        border-left: 3px solid #73fbd3;
+        border-radius: 0 0.8rem 0.8rem 0;
+        background: rgb(115 251 211 / 5%);
+        color: #b9ccc5;
+        padding: 0.8rem 1.1rem;
+        margin: 1.25rem 0;
+      }
+
+      .article-content blockquote p {
+        margin: 0.3rem 0;
+      }
+
+      /* ===== 代码 ===== */
+      .article-content code {
+        border-radius: 0.35rem;
+        background: var(--color-code-bg);
+        padding: 0.12rem 0.35rem;
+        font-family: var(--font-mono);
+        font-size: 0.9em;
+      }
+
+      .article-content pre {
+        overflow-x: auto;
+        border: 1px solid var(--color-border);
+        border-radius: 0.9rem;
+        background: #050c0a;
+        padding: 1rem;
+        margin: 1.25rem 0;
+      }
+
+      .article-content pre code {
+        background: transparent;
+        padding: 0;
+      }
+
+      /* ===== 链接 ===== */
+      .article-content a {
+        color: #73fbd3;
+        text-decoration: underline;
+        text-underline-offset: 0.2rem;
+      }
+
+      .article-content a:hover {
+        color: #d9f99d;
+      }
+
+      /* ===== 图片 ===== */
+      .article-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 0.9rem;
+      }
+
+      /* ===== 表格 ===== */
+      .article-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1.25rem 0;
+      }
+
+      .article-content th,
+      .article-content td {
+        border: 1px solid var(--color-border);
+        padding: 0.65rem;
+        text-align: left;
+      }
+
+      .article-content th {
+        background: rgb(255 255 255 / 5%);
+        font-weight: 600;
+      }
+
+      /* ===== 图片说明 ===== */
+      .article-content figure {
+        margin: 1.5rem 0;
+      }
+
+      .article-content figcaption {
+        margin-top: 0.5rem;
+        color: var(--color-muted);
+        font-size: 0.85rem;
+        text-align: center;
+      }
+
+      /* ===== 强调文本 ===== */
+      .article-content strong {
+        color: #f4faf6;
+        font-weight: 600;
+      }
+
+      .article-content em {
+        font-style: italic;
+      }
+
+      /* ===== 分割线 ===== */
+      .article-content hr {
+        border: none;
+        border-top: 1px solid var(--color-border);
+        margin: 2rem 0;
+      }
+
+      /* ===== 高亮文本 ===== */
+      .article-content mark {
+        background: rgb(217 249 157 / 25%);
+        color: inherit;
+        padding: 0.1em 0.3em;
+        border-radius: 0.2em;
+      }
+    </style>
+  </head>
+  <body>
+    <article class="article-content">
+      <h2>今日 AI 技术进展</h2>
+      <p>OpenAI 于昨日正式发布了 GPT-5 模型，这是继 GPT-4 之后的重大升级。新模型在推理能力、代码生成和多语言理解方面均有显著提升。</p>
+
+      <h3>核心改进</h3>
+      <ul>
+        <li><strong>推理能力</strong>：在复杂逻辑推理任务上准确率提升 30%</li>
+        <li><strong>代码生成</strong>：支持更长上下文窗口，一次生成完整项目结构</li>
+        <li><strong>多模态</strong>：原生支持图像、音频和视频理解</li>
+      </ul>
+
+      <h3>性能对比</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>测试项目</th>
+            <th>GPT-4</th>
+            <th>GPT-5</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>MMLU 准确率</td>
+            <td>86.4%</td>
+            <td>92.1%</td>
+          </tr>
+          <tr>
+            <td>HumanEval 通过率</td>
+            <td>67%</td>
+            <td>85%</td>
+          </tr>
+          <tr>
+            <td>上下文窗口</td>
+            <td>128K tokens</td>
+            <td>256K tokens</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <blockquote>
+        <p>"GPT-5 代表了我们向 AGI 迈出的重要一步。"——Sam Altman</p>
+      </blockquote>
+
+      <h3>代码示例</h3>
+      <p>以下是使用 GPT-5 API 的简单示例：</p>
+      <pre><code>import OpenAI from 'openai';
+
+const client = new OpenAI();
+
+const response = await client.chat.completions.create({
+  model: 'gpt-5',
+  messages: [
+    { role: 'user', content: '解释量子计算的基本原理' }
+  ]
+});
+
+console.log(response.choices[0].message.content);</code></pre>
+
+      <h3>行业影响</h3>
+      <p>此次发布预计将对以下领域产生深远影响：</p>
+      <ol>
+        <li>软件开发：<em>自动化编程</em>将进一步普及</li>
+        <li>科学研究：AI 辅助发现将加速</li>
+        <li>教育领域：个性化学习将成为可能</li>
+      </ol>
+
+      <figure>
+        <img src="https://via.placeholder.com/780x400/0d1b18/73fbd3?text=GPT-5+Architecture" alt="GPT-5 架构示意图" loading="lazy" />
+        <figcaption>图 1：GPT-5 架构示意图</figcaption>
+      </figure>
+
+      <h3>未来展望</h3>
+      <p>OpenAI 表示，<strong>GPT-5</strong> 将在未来几个月内逐步向开发者开放。同时，公司正在积极研究更安全、更可控的 AI 系统，确保技术进步能够惠及全人类。</p>
+
+      <hr />
+
+      <p><mark>注意</mark>：本文中的数据来源于 OpenAI 官方发布的测试报告，具体性能可能因使用场景而异。</p>
+    </article>
+  </body>
+</html>

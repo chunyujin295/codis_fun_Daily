@@ -56,6 +56,7 @@ function createDatabase() {
       name TEXT NOT NULL,
       token_hash TEXT NOT NULL UNIQUE,
       token_prefix TEXT NOT NULL,
+      token_secret TEXT,
       enabled INTEGER NOT NULL DEFAULT 1,
       expires_at TEXT,
       last_used_at TEXT,
@@ -317,20 +318,20 @@ function createDatabase() {
     }
   }
 
-  const seedSetting = database.prepare(`
+  const upsertSetting = database.prepare(`
     INSERT INTO settings(key, value, updated_at)
     VALUES (?, ?, ?)
-    ON CONFLICT(key) DO NOTHING
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
   `);
   if (process.env.ADMIN_PASSWORD) {
-    seedSetting.run(
+    upsertSetting.run(
       'admin_password_hash',
       hashPassword(process.env.ADMIN_PASSWORD),
       now,
     );
   }
   if (process.env.UPLOAD_PASSWORD) {
-    seedSetting.run(
+    upsertSetting.run(
       'upload_password_hash',
       hashPassword(process.env.UPLOAD_PASSWORD),
       now,

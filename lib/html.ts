@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { promises as dns } from 'node:dns';
 import { promises as fs } from 'node:fs';
+import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { BlockList, isIP } from 'node:net';
 import path from 'node:path';
@@ -26,6 +27,7 @@ export type StoredMedia = {
   height: number;
   sourceHost: string;
   position: number;
+  dataUri?: string;
 };
 
 export type ProcessedHtml = {
@@ -92,20 +94,25 @@ async function downloadImage(
   redirectCount = 0,
 ): Promise<Buffer> {
   const url = new URL(urlValue);
-  if (url.protocol !== 'https:') throw new Error('IMAGE_HTTPS_REQUIRED');
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    throw new Error('IMAGE_PROTOCOL_NOT_SUPPORTED');
+  }
   if (url.username || url.password || url.port !== '') {
     throw new Error('IMAGE_URL_NOT_ALLOWED');
   }
   if (redirectCount > 3) throw new Error('IMAGE_REDIRECT_LIMIT');
 
   const target = await resolvePublicHost(url.hostname);
+  const isHttps = url.protocol === 'https:';
+  const port = isHttps ? 443 : 80;
+  const requestModule = isHttps ? httpsRequest : httpRequest;
   return new Promise<Buffer>((resolve, reject) => {
-    const req = httpsRequest(
+    const req = requestModule(
       {
-        protocol: 'https:',
+        protocol: url.protocol,
         hostname: url.hostname,
         servername: url.hostname,
-        port: 443,
+        port,
         path: `${url.pathname}${url.search}`,
         method: 'GET',
         headers: {
@@ -239,32 +246,19 @@ async function storeImage(
     .webp({ quality: 86, effort: 4 })
     .toBuffer({ resolveWithObject: true });
   const hash = sha256(output.data);
-  const relativePath = path.join(
-    'images',
-    'sha256',
-    hash.slice(0, 2),
-    `${hash}.webp`,
-  );
-  const absolutePath = path.join(getDataRoot(), relativePath);
-  await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-
-  try {
-    await fs.access(absolutePath);
-  } catch {
-    const temporaryPath = `${absolutePath}.${randomUUID()}.tmp`;
-    await fs.writeFile(temporaryPath, output.data, { flag: 'wx' });
-    await fs.rename(temporaryPath, absolutePath);
-  }
+  const base64Data = output.data.toString('base64');
+  const dataUri = `data:image/webp;base64,${base64Data}`;
 
   return {
     hash,
-    relativePath,
+    relativePath: '',
     mimeType: 'image/webp',
     byteSize: output.data.length,
     width: output.info.width,
     height: output.info.height,
     sourceHost: source.hostname,
     position,
+    dataUri,
   };
 }
 
@@ -308,8 +302,8 @@ export async function processArticleHtml(
       $(element).remove();
       continue;
     }
-    if (source.startsWith(`${BASE_PATH}/media/images/`)) continue;
-    if (!source.startsWith('https://')) throw new Error('IMAGE_HTTPS_REQUIRED');
+    if (source.startsWith('data:')) continue;
+    if (!source.startsWith('http')) throw new Error('IMAGE_HTTPS_REQUIRED');
     const stored = await storeImage(source, index);
     totalImageBytes += stored.byteSize;
     if (totalImageBytes > ARTICLE_MAX_IMAGE_BYTES) {
@@ -317,7 +311,7 @@ export async function processArticleHtml(
     }
     media.push(stored);
     $(element)
-      .attr('src', `${BASE_PATH}/media/images/${stored.hash}.webp`)
+      .attr('src', stored.dataUri ?? source)
       .attr('width', String(stored.width))
       .attr('height', String(stored.height))
       .removeAttr('srcset');
@@ -374,13 +368,15 @@ export async function processArticleHtml(
       td: ['colspan', 'rowspan'],
       code: ['class'],
     },
-    allowedSchemes: ['https'],
+    allowedSchemes: ['https', 'http', 'data'],
     allowProtocolRelative: false,
     transformTags: {
       a: (_tagName, attributes) => {
         const href = attributes.href ?? '';
         const safeHref =
-          href.startsWith('https://') || href.startsWith(`${BASE_PATH}/`)
+          href.startsWith('https://') ||
+          href.startsWith('http://') ||
+          href.startsWith(`${BASE_PATH}/`)
             ? href
             : '#';
         return {
@@ -388,7 +384,9 @@ export async function processArticleHtml(
           attribs: {
             href: safeHref,
             rel: 'noopener noreferrer nofollow',
-            ...(safeHref.startsWith('https://') ? { target: '_blank' } : {}),
+            ...((safeHref.startsWith('https://') || safeHref.startsWith('http://'))
+              ? { target: '_blank' }
+              : {}),
           },
         };
       },

@@ -66,12 +66,14 @@ type AdminUploader = {
     id: string;
     name: string;
     tokenPrefix: string;
+    tokenSecret: string | null;
     enabled: number;
     expiresAt: string | null;
     lastUsedAt: string | null;
     createdAt: string;
     categories: string[];
   }[];
+  articleCount: number;
 };
 type TtsConfig = {
   adapterType: string;
@@ -125,6 +127,17 @@ export function AdminDashboard({
   const [message, setMessage] = useState('');
   const [ttsEnabled, setTtsEnabled] = useState(tts.enabled);
   const [issuedToken, setIssuedToken] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState(() => {
+    // 从 URL hash 中读取初始 tab
+    const hash = window.location.hash.slice(1);
+    const validTabs = ['articles', 'upload', 'categories', 'agents', 'settings'];
+    return validTabs.includes(hash) ? hash : 'articles';
+  });
+
+  // 当 tab 切换时，更新 URL hash
+  useEffect(() => {
+    window.location.hash = activeTab;
+  }, [activeTab]);
 
   const call = useCallback(
     async (path: string, init: RequestInit = {}) => {
@@ -154,7 +167,7 @@ export function AdminDashboard({
             : article,
         ),
       );
-      setMessage('文章已撤下，公开正文和音频现在返回 404。');
+      setMessage('文章已删除。');
       return { articleId, status: 'archived' };
     },
     [call],
@@ -257,8 +270,13 @@ export function AdminDashboard({
       const token = result.token as { token?: string } | undefined;
       if (!token?.token) throw new Error('服务器没有返回令牌');
       setIssuedToken(token.token);
-      setMessage('令牌签发成功。请立即复制；离开页面后无法再次查看明文。');
+      setMessage('令牌签发成功。请立即复制；3秒后刷新页面。');
       event.currentTarget.reset();
+      // 3秒后刷新页面，更新列表并清空令牌显示
+      setTimeout(() => {
+        setIssuedToken(null);
+        window.location.reload();
+      }, 3000);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '令牌签发失败');
     }
@@ -400,7 +418,12 @@ export function AdminDashboard({
         </div>
       </section>
 
-      <Tabs defaultValue="articles" className="admin-tabs">
+      <Tabs
+        defaultValue="articles"
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="admin-tabs"
+      >
         <TabsList variant="line" aria-label="后台功能">
           <TabsTrigger value="articles">文章</TabsTrigger>
           <TabsTrigger value="upload">上传更新</TabsTrigger>
@@ -661,99 +684,132 @@ export function AdminDashboard({
             </section>
           ) : null}
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>上传者</TableHead>
-                <TableHead>令牌</TableHead>
-                <TableHead>栏目</TableHead>
-                <TableHead>最近使用</TableHead>
-                <TableHead>操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(uploaders ?? []).flatMap((uploader) =>
-                uploader.tokens.length
-                  ? uploader.tokens.map((token) => (
-                      <TableRow key={token.id}>
-                        <TableCell>
-                          {uploader.displayName}
-                          <small>{uploader.id}</small>
-                        </TableCell>
-                        <TableCell>
-                          {token.name}
-                          <small>{token.tokenPrefix}…</small>
-                          <small>
-                            {token.expiresAt
-                              ? `到期：${new Date(token.expiresAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`
-                              : '长期有效'}
-                          </small>
-                        </TableCell>
-                        <TableCell>{token.categories.join('、')}</TableCell>
-                        <TableCell>
-                          {token.lastUsedAt
-                            ? new Date(token.lastUsedAt).toLocaleString(
-                                'zh-CN',
-                                {
-                                  timeZone: 'Asia/Shanghai',
-                                },
-                              )
-                            : '尚未使用'}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={token.enabled ? 'destructive' : 'outline'}
-                            onClick={() =>
-                              void setTokenEnabled(token.id, !token.enabled)
-                            }
-                          >
-                            {token.enabled ? '停用' : '启用'}
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger
-                              render={
-                                <Button variant="destructive" size="sm" />
-                              }
-                            >
-                              永久撤销
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  永久撤销这个令牌？
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  撤销后不能恢复；持有原令牌的智能体将立即无法上传。
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>取消</AlertDialogCancel>
-                                <AlertDialogCancel
-                                  variant="destructive"
-                                  onClick={() => void revokeToken(token.id)}
+          <div style={{ overflowX: 'auto' }}>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>上传者</TableHead>
+                  <TableHead>令牌</TableHead>
+                  <TableHead>栏目</TableHead>
+                  <TableHead>文章数</TableHead>
+                  <TableHead>最近使用</TableHead>
+                  <TableHead>操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(uploaders ?? []).flatMap((uploader) =>
+                  uploader.tokens.length
+                    ? uploader.tokens.map((token) => (
+                        <TableRow key={token.id}>
+                          <TableCell>
+                            <div>{uploader.displayName}</div>
+                            {uploader.displayName !== uploader.id && (
+                              <small style={{ color: 'var(--muted-foreground)' }}>
+                                {uploader.id}
+                              </small>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div>{token.name}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.25rem 0' }}>
+                              <code style={{ userSelect: 'all', cursor: 'pointer', fontSize: '0.85em' }}>
+                                {token.tokenPrefix}…
+                              </code>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  const fullToken = token.tokenSecret
+                                    ? `dk_live_${token.id}.${token.tokenSecret}`
+                                    : `dk_live_${token.id}`;
+                                  navigator.clipboard.writeText(fullToken);
+                                }}
+                              >
+                                复制
+                              </Button>
+                            </div>
+                            <small style={{ color: 'var(--muted-foreground)' }}>
+                              {token.expiresAt
+                                ? `到期：${new Date(token.expiresAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`
+                                : '长期有效'}
+                            </small>
+                          </TableCell>
+                          <TableCell>{token.categories.join('、')}</TableCell>
+                          <TableCell>{uploader.articleCount}</TableCell>
+                          <TableCell>
+                            {token.lastUsedAt
+                              ? new Date(token.lastUsedAt).toLocaleString(
+                                  'zh-CN',
+                                  {
+                                    timeZone: 'Asia/Shanghai',
+                                  },
+                                )
+                              : '尚未使用'}
+                          </TableCell>
+                          <TableCell>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={token.enabled ? 'destructive' : 'outline'}
+                                onClick={() =>
+                                  void setTokenEnabled(token.id, !token.enabled)
+                                }
+                              >
+                                {token.enabled ? '停用' : '启用'}
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger
+                                  render={
+                                    <Button variant="destructive" size="sm" />
+                                  }
                                 >
-                                  确认撤销
-                                </AlertDialogCancel>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  : [
-                      <TableRow key={`${uploader.id}-empty`}>
-                        <TableCell>
-                          {uploader.displayName}
-                          <small>{uploader.id}</small>
-                        </TableCell>
-                        <TableCell colSpan={4}>尚未签发独立令牌</TableCell>
-                      </TableRow>,
-                    ],
-              )}
-            </TableBody>
-          </Table>
+                                  撤销
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      永久撤销这个令牌？
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      撤销后不能恢复；持有原令牌的智能体将立即无法上传。
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>取消</AlertDialogCancel>
+                                    <AlertDialogCancel
+                                      variant="destructive"
+                                      onClick={() => void revokeToken(token.id)}
+                                    >
+                                      确认撤销
+                                    </AlertDialogCancel>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    : [
+                        <TableRow key={`${uploader.id}-empty`}>
+                          <TableCell>
+                            <div>{uploader.displayName}</div>
+                            {uploader.displayName !== uploader.id && (
+                              <small style={{ color: 'var(--muted-foreground)' }}>
+                                {uploader.id}
+                              </small>
+                            )}
+                          </TableCell>
+                          <TableCell colSpan={5}>
+                            尚未签发独立令牌
+                          </TableCell>
+                        </TableRow>,
+                      ],
+                )}
+              </TableBody>
+            </Table>
+          </div>
 
           <form
             className="admin-form admin-form-grid"

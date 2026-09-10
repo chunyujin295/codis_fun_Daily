@@ -96,9 +96,14 @@ function slugPart(value: string) {
     .slice(0, 64);
 }
 
-function makeSlug(contentDate: string, category: string, externalId: string) {
+function makeSlug(
+  contentDate: string,
+  category: string,
+  externalId: string,
+  uploaderId: string,
+) {
   const external = slugPart(externalId) || randomUUID().slice(0, 12);
-  return `${contentDate}-${slugPart(category)}-${external}`;
+  return `${contentDate}-${slugPart(category)}-${slugPart(uploaderId)}-${external}`;
 }
 
 function ensureUniqueSlug(candidate: string) {
@@ -206,7 +211,9 @@ export async function submitArticle(
     const version = (existing?.currentVersion ?? 0) + 1;
     const slug =
       existing?.slug ??
-      ensureUniqueSlug(makeSlug(contentDate, input.category, input.externalId));
+      ensureUniqueSlug(
+        makeSlug(contentDate, input.category, input.externalId, input.uploaderId),
+      );
     const status = options.adminRepublish
       ? 'published'
       : (existing?.status ?? 'published');
@@ -281,7 +288,7 @@ export async function submitArticle(
     for (const media of processed.media as StoredMedia[]) {
       insertMedia.run(
         media.hash,
-        media.relativePath,
+        '',  // base64 内嵌，无文件路径
         media.mimeType,
         media.byteSize,
         media.width,
@@ -473,14 +480,35 @@ export function getAdminArticles() {
 }
 
 export function setArticleArchived(articleId: string, archived: boolean) {
-  const result = getDb()
-    .prepare('UPDATE articles SET status = ?, updated_at = ? WHERE id = ?')
-    .run(
-      archived ? 'archived' : 'published',
-      new Date().toISOString(),
-      articleId,
-    );
-  return result.changes > 0;
+  if (archived) {
+    // 彻底删除文章及其所有版本和关联数据
+    const db = getDb();
+    const article = db
+      .prepare('SELECT id FROM articles WHERE id = ?')
+      .get(articleId) as { id: string } | undefined;
+    if (!article) return false;
+
+    db.transaction(() => {
+      // 删除关联的媒体文件记录
+      db.prepare(
+        `DELETE FROM article_version_media WHERE article_version_id IN
+         (SELECT id FROM article_versions WHERE article_id = ?)`,
+      ).run(articleId);
+      // 删除文章版本
+      db.prepare('DELETE FROM article_versions WHERE article_id = ?').run(
+        articleId,
+      );
+      // 删除文章
+      db.prepare('DELETE FROM articles WHERE id = ?').run(articleId);
+    })();
+    return true;
+  } else {
+    // 恢复发布
+    const result = getDb()
+      .prepare('UPDATE articles SET status = ?, updated_at = ? WHERE id = ?')
+      .run('published', new Date().toISOString(), articleId);
+    return result.changes > 0;
+  }
 }
 
 export function getOverview() {
