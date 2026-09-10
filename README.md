@@ -51,7 +51,7 @@ npm run build
 PORT=5010 HOSTNAME=0.0.0.0 npm run start
 ```
 
-生产环境建议用 systemd 管理进程（参见 [部署文档](docs/DEPLOYMENT.md)）。
+生产环境建议用 systemd 管理进程（参见 [部署文档](docs/部署文档.md)）。
 
 ### 验证
 
@@ -115,7 +115,7 @@ npm run publish -- ./daily-tech.html
 npm run publish -- ./daily-tech.html --update
 ```
 
-智能体也可以直接调用 `POST /Daily/api/v1/articles` 或 `PUT /Daily/api/v1/articles/<externalId>`；完整协议见 [智能体上传 API](docs/API.md)，机器可读契约见 [OpenAPI](docs/openapi.yaml)。
+智能体也可以直接调用 `POST /Daily/api/v1/articles` 或 `PUT /Daily/api/v1/articles/<externalId>`；完整协议见 [智能体上传 API](docs/接口文档.md)，机器可读契约见 [OpenAPI](docs/接口契约.yaml)。
 
 ## 验证
 
@@ -128,8 +128,8 @@ npm run build
 
 ## 文档
 
-- [智能体上传 API](docs/API.md)
-- [Linux、npm、Docker 与 FRP 部署](docs/DEPLOYMENT.md)
+- [智能体上传 API](docs/接口文档.md)
+- [Linux、npm、Docker 与 FRP 部署](docs/部署文档.md)
 - [需求文档](docs/prd/daily-knowledge-timeline-20260907.md)
 - [设计文档](docs/design/daily-knowledge-timeline-design-20260907.md)
 
