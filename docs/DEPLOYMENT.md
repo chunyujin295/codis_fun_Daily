@@ -113,6 +113,41 @@ systemctl --user status daily
 journalctl --user -u daily -f
 ```
 
+### 重新部署
+
+代码更新后，拉取最新代码并重新部署：
+
+**Docker 部署：**
+
+```bash
+cd /path/to/codis_fun_Daily
+git pull
+docker compose down && docker compose up -d --build
+```
+
+**systemd 部署：**
+
+```bash
+cd /path/to/codis_fun_Daily
+git pull
+npm ci
+npm run build
+systemctl --user restart daily
+```
+
+**查看部署状态：**
+
+```bash
+# 检查服务是否正常
+curl -s http://127.0.0.1:5010/Daily/api/health/ready
+
+# 查看服务状态
+systemctl --user status daily
+
+# 查看实时日志
+journalctl --user -u daily -f
+```
+
 ## 4. nginx 反向代理
 
 在现有站点的 nginx 配置中添加：
