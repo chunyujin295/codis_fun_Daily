@@ -367,7 +367,7 @@ export async function testXfyunProvider() {
   const provider = getProviderRow();
   const secrets = decryptProviderSecrets(provider);
   try {
-    await synthesizeXfyunChunk('欢迎来到每日知识年轮。', provider, secrets);
+    await synthesizeXfyunChunk('欢迎来到 Daily Paper。', provider, secrets);
     const now = new Date().toISOString();
     getDb()
       .prepare(`

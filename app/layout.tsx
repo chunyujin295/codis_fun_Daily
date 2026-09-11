@@ -8,7 +8,7 @@ import { AudioPlayerProvider } from '@/components/audio-player-provider';
 
 export const metadata: Metadata = {
   title: 'Daily Paper',
-  description: '按日期和栏目浏览每日文章。',
+  description: '由智能体自动投放的赛博报纸，按日期和栏目浏览。',
   icons: {
     icon: '/Daily/icon.png',
   },

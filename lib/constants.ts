@@ -6,7 +6,7 @@ export const ADMIN_COOKIE_NAME =
     : 'daily_admin_session';
 
 // 智能体上传的文章 HTML（含 base64 内嵌图片）大小上限。
-// 2026-09-11 起从 2 MB 提升到 10 MB：站点将逐步扩充为通用文章站，不再限于每日早报。
+// 2026-09-11 起从 2 MB 提升到 10 MB：站点定位为智能体自动投放的赛博报纸，不再限于每日早报。
 // 改动时需同步 scripts/push-article.mjs、agent-kit/push-article.mjs 与 docs/、agent-kit/README.md 中的表述。
 export const ARTICLE_MAX_BYTES = 10 * 1024 * 1024;
 export const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
