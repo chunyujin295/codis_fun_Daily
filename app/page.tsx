@@ -424,12 +424,7 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="editorial-hero" aria-labelledby="timeline-title">
-        <h1 id="timeline-title">
-          <span>每日</span>
-          <span>更新</span>
-        </h1>
-      </section>
+      <h1 className="sr-only">Daily Knowledge 每日更新</h1>
 
       <div className="filter-shell">
         <nav className="category-filter" aria-label="栏目筛选">

@@ -1,66 +1,70 @@
 :root {
-  --background: #efeee8;
-  --foreground: #292821;
-  --card: #f7f5ee;
-  --card-foreground: #292821;
-  --primary: #a95439;
-  --primary-foreground: #fffaf1;
-  --secondary: #e4e1d7;
-  --secondary-foreground: #292821;
-  --muted: #e4e1d7;
-  --muted-foreground: #716f66;
-  --accent: #e7d8cf;
-  --accent-foreground: #713520;
-  --border: rgb(41 40 33 / 16%);
-  --input: rgb(41 40 33 / 20%);
-  --ring: #a95439;
-  --surface: #f7f5ee;
-  --surface-raised: #fbfaf5;
-  --surface-subtle: #e6e3da;
-  --surface-glass: rgb(239 238 232 / 86%);
-  --ink: #292821;
-  --ink-soft: #55534b;
-  --ink-muted: #77746a;
-  --brand: #a95439;
-  --brand-strong: #793a25;
-  --brand-soft: #e8d8ce;
-  --line: rgb(41 40 33 / 14%);
-  --shadow-sm: 0 1px 1px rgb(38 35 28 / 6%);
-  --shadow-lg: 0 22px 52px rgb(38 35 28 / 10%);
+  --background: #f5f5f7;
+  --foreground: #1d1d1f;
+  --card: #ffffff;
+  --card-foreground: #1d1d1f;
+  --primary: #0071e3;
+  --primary-foreground: #ffffff;
+  --secondary: #e8e8ed;
+  --secondary-foreground: #1d1d1f;
+  --muted: #e8e8ed;
+  --muted-foreground: #6e6e73;
+  --accent: #e8f2fc;
+  --accent-foreground: #005bb5;
+  --border: rgb(29 29 31 / 14%);
+  --input: rgb(29 29 31 / 18%);
+  --ring: #0071e3;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-subtle: #e8e8ed;
+  --surface-glass: rgb(245 245 247 / 86%);
+  --ink: #1d1d1f;
+  --ink-soft: #515154;
+  --ink-muted: #6e6e73;
+  --brand: #0071e3;
+  --brand-strong: #005bb5;
+  --brand-soft: #e8f2fc;
+  --line: rgb(29 29 31 / 12%);
+  --shadow-sm: 0 1px 1px rgb(0 0 0 / 5%);
+  --shadow-lg: 0 22px 52px rgb(0 0 0 / 12%);
   --material-highlight: rgb(255 255 255 / 72%);
-  --material-shadow: rgb(55 48 38 / 10%);
+  --material-shadow: rgb(0 0 0 / 11%);
   --radius: 1.1rem;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Noto Sans SC',
+    'Microsoft YaHei UI', sans-serif;
   --font-heading:
-    'Noto Serif SC', 'Source Han Serif SC', 'STSong', 'Songti SC', serif;
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Noto Sans SC',
+    'Microsoft YaHei UI', sans-serif;
 }
 
 .dark {
-  --background: #171612;
-  --foreground: #e8e4d9;
-  --card: #211f1a;
-  --card-foreground: #e8e4d9;
-  --primary: #d17a5d;
-  --primary-foreground: #171612;
-  --secondary: #292720;
-  --secondary-foreground: #e8e4d9;
-  --muted: #292720;
-  --muted-foreground: #aaa69a;
-  --accent: #40271e;
-  --accent-foreground: #efb49f;
-  --border: rgb(232 228 217 / 16%);
-  --input: rgb(232 228 217 / 20%);
-  --ring: #d17a5d;
-  --surface: #211f1a;
-  --surface-raised: #25231d;
-  --surface-subtle: #2c2922;
-  --surface-glass: rgb(23 22 18 / 86%);
-  --ink: #e8e4d9;
-  --ink-soft: #c0bbae;
-  --ink-muted: #969287;
-  --brand: #d17a5d;
-  --brand-strong: #edaa92;
-  --brand-soft: #40271e;
-  --line: rgb(232 228 217 / 14%);
+  --background: #000000;
+  --foreground: #f5f5f7;
+  --card: #1c1c1e;
+  --card-foreground: #f5f5f7;
+  --primary: #2997ff;
+  --primary-foreground: #000000;
+  --secondary: #2c2c2e;
+  --secondary-foreground: #f5f5f7;
+  --muted: #2c2c2e;
+  --muted-foreground: #a1a1a6;
+  --accent: #102a43;
+  --accent-foreground: #64b5ff;
+  --border: rgb(245 245 247 / 16%);
+  --input: rgb(245 245 247 / 20%);
+  --ring: #2997ff;
+  --surface: #1c1c1e;
+  --surface-raised: #242426;
+  --surface-subtle: #2c2c2e;
+  --surface-glass: rgb(0 0 0 / 82%);
+  --ink: #f5f5f7;
+  --ink-soft: #d2d2d7;
+  --ink-muted: #a1a1a6;
+  --brand: #2997ff;
+  --brand-strong: #64b5ff;
+  --brand-soft: #102a43;
+  --line: rgb(245 245 247 / 14%);
   --shadow-sm: 0 1px 1px rgb(0 0 0 / 26%);
   --shadow-lg: 0 24px 58px rgb(0 0 0 / 28%);
   --material-highlight: rgb(255 255 255 / 9%);
@@ -69,17 +73,15 @@
 
 body {
   background-color: var(--background);
-  background-image: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--ink), transparent 95%) 0.55px,
-    transparent 0.7px
-  );
-  background-size: 5px 5px;
+  background-image: none;
 }
 
 .site-shell {
   --active-color: var(--brand);
   position: relative;
+  display: flex;
+  min-height: 100svh;
+  flex-direction: column;
   overflow: clip;
   background: var(--background);
   color: var(--ink);
@@ -87,15 +89,15 @@ body {
 
 .site-shell::before {
   position: absolute;
-  top: 4rem;
-  right: -18vw;
-  width: min(55rem, 80vw);
-  height: min(55rem, 80vw);
-  border: 1px solid color-mix(in srgb, var(--active-color), transparent 82%);
+  top: -6rem;
+  right: -22vw;
+  width: min(46rem, 70vw);
+  height: min(46rem, 70vw);
+  border: 1px solid color-mix(in srgb, var(--active-color), transparent 86%);
   border-radius: 47% 53% 44% 56%;
   background: transparent;
   content: '';
-  opacity: 0.45;
+  opacity: 0.4;
   mask-image: none;
   pointer-events: none;
   transform: rotate(-13deg);
@@ -171,45 +173,6 @@ body {
   background: color-mix(in srgb, var(--ink), transparent 90%);
 }
 
-.editorial-hero {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: auto auto;
-  gap: 0;
-  min-height: calc(88svh - 68px);
-  align-content: center;
-  width: min(1380px, calc(100% - 2.5rem));
-  margin: 0 auto;
-  padding: clamp(6rem, 15vh, 11rem) clamp(0rem, 3vw, 3rem);
-}
-
-.editorial-hero h1 {
-  display: grid;
-  width: fit-content;
-  max-width: none;
-  margin: 0;
-  color: var(--ink);
-  font-family: var(--font-heading);
-  font-size: clamp(5.2rem, 15vw, 12.5rem);
-  font-weight: 700;
-  letter-spacing: -0.1em;
-  line-height: 0.76;
-}
-
-.editorial-hero h1 span {
-  display: block;
-  animation: title-rise 1100ms both cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.editorial-hero h1 span:last-child {
-  margin-left: 0.56em;
-  color: var(--active-color);
-  animation-delay: 100ms;
-  transition: color 700ms ease;
-}
-
 .filter-shell {
   position: sticky;
   top: 68px;
@@ -232,7 +195,7 @@ body {
   border: 0;
   border-radius: 0;
   background: transparent;
-  padding: 0.34rem 1.25rem;
+  padding: 0.45rem 1.25rem;
   box-shadow: none;
   overflow-x: auto;
   background: transparent;
@@ -247,15 +210,19 @@ body {
 .category-chip {
   --chip-color: var(--brand);
   position: relative;
-  min-height: 2rem;
+  display: inline-flex;
+  min-height: 2.3rem;
   flex: 0 0 auto;
+  align-items: center;
+  gap: 0.45rem;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--ink-muted);
-  padding: 0.3rem 0.65rem;
+  padding: 0.35rem 0.85rem;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.005em;
   box-shadow: none;
 }
 
@@ -290,8 +257,13 @@ body {
 }
 
 .chip-dot {
-  width: 0.38rem;
-  height: 0.38rem;
+  width: 0.44rem;
+  height: 0.44rem;
+  background: var(--chip-color);
+}
+
+/* 旧的选中态白点是为"深色药丸"设计的，在浅色药丸上看不见，改为分类色 */
+.category-chip[aria-pressed='true'] .chip-dot {
   background: var(--chip-color);
 }
 
@@ -299,13 +271,14 @@ body {
   position: relative;
   z-index: 2;
   display: grid;
-  min-height: 100svh;
+  flex: 1 0 auto;
+  min-height: 0;
   align-content: center;
   overflow: hidden;
   border-bottom: 1px solid var(--line);
   background: var(--background);
   color: var(--ink);
-  padding: clamp(2rem, 4vh, 3rem) 1rem clamp(4rem, 8vh, 6rem);
+  padding: clamp(1.25rem, 2.5vh, 2rem) 1rem clamp(1.5rem, 3vh, 2.25rem);
   transition:
     background 320ms ease,
     color 320ms ease;
@@ -318,9 +291,9 @@ body {
   width: min(76rem, 90vw);
   height: min(38rem, 52vw);
   border-radius: 50%;
-  background: color-mix(in srgb, var(--active-color), transparent 91%);
+  background: color-mix(in srgb, var(--active-color), transparent 93%);
   content: '';
-  filter: blur(70px);
+  filter: blur(88px);
   pointer-events: none;
   transform: translate(-50%, -56%);
   transition: background 700ms ease;
@@ -328,11 +301,17 @@ body {
 
 .coverflow-stage {
   --drag-offset: 0px;
+  /* 页头 68 + 筛选栏 52 + 区块上下留白 ~50 + 翻页器 ~47 */
+  --cover-lift: 220px;
+  --card-size: min(
+    clamp(16rem, 34vw, 28.5rem),
+    calc((100svh - var(--cover-lift)) / 1.62)
+  );
   position: relative;
   z-index: 2;
   display: block;
   width: min(1380px, 100%);
-  height: clamp(30rem, 58vw, 46rem);
+  height: calc(var(--card-size) * 1.62);
   margin: 0 auto;
   border: 0;
   background: transparent;
@@ -354,17 +333,17 @@ body {
 .coverflow-floor {
   position: absolute;
   z-index: 0;
-  top: 77%;
+  top: 64%;
   left: 50%;
   width: min(58rem, 80vw);
-  height: 8rem;
+  height: 7rem;
   border-radius: 50%;
   background: radial-gradient(
     ellipse,
-    color-mix(in srgb, var(--ink), transparent 82%),
-    transparent 67%
+    color-mix(in srgb, var(--ink), transparent 84%),
+    transparent 66%
   );
-  filter: blur(14px);
+  filter: blur(22px);
   transform: translateX(-50%);
 }
 
@@ -374,11 +353,12 @@ body {
   --cover-scale: 1;
   --cover-color: var(--brand);
   position: absolute;
-  top: 45%;
+  top: 36%;
   left: 50%;
   display: block;
-  width: clamp(19rem, 42vw, 36rem);
+  width: var(--card-size);
   aspect-ratio: 1;
+  container-type: inline-size;
   color: var(--ink);
   transition:
     transform 620ms cubic-bezier(0.22, 0.82, 0.24, 1),
@@ -394,8 +374,8 @@ body {
 }
 
 .cover-card.is-left {
-  opacity: calc(0.94 - var(--distance) * 0.11);
-  filter: saturate(0.74) brightness(0.92);
+  opacity: calc(0.97 - var(--distance) * 0.075);
+  filter: saturate(0.86) brightness(0.97);
   transform: translate3d(
       calc(-50% - var(--shift) + var(--drag-offset)),
       -50%,
@@ -405,8 +385,8 @@ body {
 }
 
 .cover-card.is-right {
-  opacity: calc(0.94 - var(--distance) * 0.11);
-  filter: saturate(0.74) brightness(0.92);
+  opacity: calc(0.97 - var(--distance) * 0.075);
+  filter: saturate(0.86) brightness(0.97);
   transform: translate3d(
       calc(-50% + var(--shift) + var(--drag-offset)),
       -50%,
@@ -425,66 +405,102 @@ body {
   inset: 0;
   grid-template-rows: auto 1fr auto auto;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--ink), transparent 74%);
-  border-radius: 1.65rem;
+  border: 1px solid color-mix(in srgb, var(--ink), transparent 92%);
+  border-radius: 0;
   background:
     radial-gradient(
-      circle at 78% 18%,
-      color-mix(in srgb, var(--cover-color), transparent 58%),
-      transparent 31%
+      circle at 88% 4%,
+      color-mix(in srgb, var(--cover-color), transparent 74%),
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 4% 98%,
+      color-mix(in srgb, var(--cover-color), transparent 88%),
+      transparent 44%
     ),
     linear-gradient(
-      142deg,
-      color-mix(in srgb, var(--cover-color), var(--surface-raised) 88%),
-      var(--surface-raised) 64%,
-      color-mix(in srgb, var(--ink), var(--surface-raised) 97%)
+      180deg,
+      var(--card) 0%,
+      var(--card) 70%,
+      color-mix(in srgb, var(--card), var(--ink) 3%) 100%
     );
   padding: clamp(1.25rem, 3vw, 2.4rem);
   box-shadow:
-    inset 0 2px 0 var(--material-highlight),
-    inset 0 -3px 7px color-mix(in srgb, var(--ink), transparent 91%),
-    2px 3px 0 color-mix(in srgb, var(--surface-raised), var(--ink) 12%),
-    5px 8px 14px rgb(38 35 28 / 9%),
-    var(--shadow-lg);
+    0 1px 1px rgb(0 0 0 / 5%),
+    0 2px 4px rgb(0 0 0 / 4%),
+    0 10px 20px rgb(0 0 0 / 6%),
+    0 28px 56px rgb(0 0 0 / 9%),
+    0 60px 110px rgb(0 0 0 / 7%);
   text-align: left;
-  -webkit-box-reflect: below 2px
-    linear-gradient(to bottom, transparent 62%, rgb(0 0 0 / 16%));
+  -webkit-box-reflect: below 7px
+    linear-gradient(
+      to bottom,
+      rgb(0 0 0 / 0%) 0%,
+      rgb(0 0 0 / 0%) 46%,
+      rgb(0 0 0 / 5%) 56%,
+      rgb(0 0 0 / 13%) 67%,
+      rgb(0 0 0 / 25%) 78%,
+      rgb(0 0 0 / 40%) 89%,
+      rgb(0 0 0 / 58%) 100%
+    );
+}
+
+.cover-card:not(.is-active) .cover-paper {
+  -webkit-box-reflect: below 7px
+    linear-gradient(
+      to bottom,
+      rgb(0 0 0 / 0%) 0%,
+      rgb(0 0 0 / 0%) 66%,
+      rgb(0 0 0 / 20%) 84%,
+      rgb(0 0 0 / 42%) 100%
+    );
+}
+
+.dark .cover-paper {
+  -webkit-box-reflect: below 7px
+    linear-gradient(
+      to bottom,
+      rgb(0 0 0 / 0%) 0%,
+      rgb(0 0 0 / 0%) 46%,
+      rgb(0 0 0 / 6%) 56%,
+      rgb(0 0 0 / 16%) 67%,
+      rgb(0 0 0 / 28%) 78%,
+      rgb(0 0 0 / 42%) 89%,
+      rgb(0 0 0 / 64%) 100%
+    );
+}
+
+.dark .cover-card:not(.is-active) .cover-paper {
+  -webkit-box-reflect: below 7px
+    linear-gradient(
+      to bottom,
+      rgb(0 0 0 / 0%) 0%,
+      rgb(0 0 0 / 0%) 64%,
+      rgb(0 0 0 / 26%) 84%,
+      rgb(0 0 0 / 50%) 100%
+    );
 }
 
 .cover-paper::before {
   position: absolute;
   inset: 0;
-  background:
-    repeating-linear-gradient(
-      7deg,
-      transparent 0 8px,
-      color-mix(in srgb, var(--ink), transparent 97%) 8px 9px
-    ),
-    radial-gradient(
-      circle at 17% 24%,
-      rgb(255 255 255 / 18%) 0 0.7px,
-      transparent 1px
-    );
-  background-size:
-    auto,
-    7px 7px;
+  background: radial-gradient(
+    circle at 50% 128%,
+    rgb(0 0 0 / 5%),
+    transparent 62%
+  );
   content: '';
-  mix-blend-mode: multiply;
-  opacity: 0.55;
   pointer-events: none;
 }
 
 .cover-paper::after {
   position: absolute;
-  right: 9%;
-  bottom: 11%;
-  width: 25%;
-  height: 1px;
-  background: color-mix(in srgb, var(--cover-color), var(--ink) 18%);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 10px;
+  background: color-mix(in srgb, var(--cover-color), transparent 4%);
   content: '';
-  opacity: 0.72;
-  box-shadow: 0 1px rgb(255 255 255 / 16%);
-  transform: rotate(-7deg);
 }
 
 .cover-topline,
@@ -509,19 +525,22 @@ body {
   position: relative;
   z-index: 1;
   display: grid;
-  gap: clamp(0.9rem, 2vw, 1.4rem);
-  align-self: center;
+  gap: clamp(0.7rem, 1.6vw, 1.1rem);
+  align-self: end;
+  padding-bottom: clamp(0.5rem, 1.2vw, 0.9rem);
 }
 
 .cover-copy > strong {
   display: block;
-  max-width: 12ch;
   color: var(--ink);
   font-family: var(--font-heading);
-  font-size: clamp(2.15rem, 4.5vw, 4.25rem);
+  font-size: clamp(1.55rem, 3.1vw, 2.7rem);
+  /* 跟随卡片宽度缩放，避免卡片被视口高度压小时标题溢出 */
+  font-size: 10cqw;
   font-weight: 700;
-  letter-spacing: -0.055em;
+  letter-spacing: -0.028em;
   line-height: 1.08;
+  text-wrap: balance;
 }
 
 .cover-summary {
@@ -566,7 +585,7 @@ body {
   gap: 0.65rem;
   align-items: center;
   justify-content: center;
-  margin: -0.6rem auto 0;
+  margin: 0.35rem auto 0;
 }
 
 .coverflow-controls > button {
@@ -782,18 +801,6 @@ body {
   cursor: pointer;
 }
 
-@keyframes title-rise {
-  from {
-    opacity: 0;
-    transform: translateY(0.45em);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @keyframes caption-in {
   from {
     opacity: 0;
@@ -822,31 +829,13 @@ body {
     font-size: 0;
   }
 
-  .editorial-hero {
-    width: calc(100% - 2rem);
-    min-height: calc(82svh - 68px);
-    padding-inline: 0.25rem;
-  }
-
-  .editorial-hero h1 {
-    font-size: clamp(4.8rem, 27vw, 7.4rem);
-  }
-
-  .editorial-hero h1 span:last-child {
-    margin-left: 0.28em;
-  }
-
   .coverflow-section {
-    min-height: 88svh;
+    min-height: 0;
     padding-inline: 0;
   }
 
   .coverflow-stage {
-    height: 31rem;
-  }
-
-  .cover-card {
-    width: clamp(18rem, 78vw, 25rem);
+    --card-size: clamp(14rem, 66vw, 19rem);
   }
 
   .cover-card.is-left {
@@ -868,7 +857,7 @@ body {
   }
 
   .cover-copy > strong {
-    font-size: clamp(2rem, 8vw, 3rem);
+    font-size: clamp(1.5rem, 5.6vw, 2.1rem);
   }
 
   .coverflow-caption {
@@ -910,7 +899,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .editorial-hero *,
   .cover-card,
   .coverflow-caption {
     animation: none !important;
