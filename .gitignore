@@ -40,3 +40,5 @@ Thumbs.db
 
 # Local scratch / agent working dirs
 /.pet-runs/
+/.codegraph/
+/.workbuddy/
