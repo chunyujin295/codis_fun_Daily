@@ -337,8 +337,9 @@ body {
 
 .coverflow-stage {
   --drag-offset: 0px;
-  /* 页头 68 + 筛选栏 52 + 区块上下留白 ~50 + 翻页器 ~47 */
-  --cover-lift: 220px;
+  /* 页头 68 + 筛选栏 56 + 区块上下留白 ~58 + 翻页器 46 ≈ 228
+     （按钮尺寸放大后，筛选栏与翻页器各比原先高 4px，故由 220 上调） */
+  --cover-lift: 228px;
   --card-size: min(
     clamp(16rem, 34vw, 28.5rem),
     calc((100svh - var(--cover-lift)) / 1.62)
