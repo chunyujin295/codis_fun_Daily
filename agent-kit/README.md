@@ -279,7 +279,7 @@ Content-Type: audio/mpeg
 | 422 | 字段缺失或 HTML 无效 | 检查 metadata 和 HTML 格式 |
 | 429 | 请求过于频繁 | 等待后重试 |
 | 413 | 音频/文章体积超限 | 按应用层上限压缩（音频 20MB / 文章 10MB） |
-| 415 | 不是 MP3 | 用真正的 MP3（ID3 头或 MPEG 帧） |
+| 415 | 不是 MP3 | 用真正的 MP3（ID3 头或 MPEG 帧）。**注意：edge-tts 直出的是 MPEG-2 24kHz 也会被拒**，先按「朗读音频」一节用 ffmpeg 转成 MPEG-1 |
 
 ---
 
