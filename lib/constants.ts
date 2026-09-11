@@ -11,7 +11,7 @@ export const ADMIN_COOKIE_NAME =
 export const ARTICLE_MAX_BYTES = 10 * 1024 * 1024;
 export const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 export const ARTICLE_MAX_IMAGE_BYTES = 40 * 1024 * 1024;
-export const ARTICLE_MAX_IMAGES = 20;
+export const ARTICLE_MAX_IMAGES = 50;
 export const XFYUN_SEGMENT_MAX_BYTES = 7600;
 // 智能体上传的朗读音频（MP3）大小上限。20MB 约等于 128kbps 下 20 分钟，足够日常口播。
 // 注意：这些是**应用层**上限；前置 nginx 默认 client_max_body_size 只有 1 MiB，会先一步 413，
