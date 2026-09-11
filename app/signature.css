@@ -21,7 +21,8 @@
   min-height: 68px;
   border-bottom: 1px solid var(--line);
   background: var(--surface-glass);
-  padding-block: 0.65rem;
+  /* 与首页顶栏一致的固定水平边距：返回链接始终距左、品牌与主题切换始终距右 */
+  padding: 0.65rem 1.25rem;
   box-shadow: none;
 }
 

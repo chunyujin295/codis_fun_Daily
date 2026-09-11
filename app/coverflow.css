@@ -111,7 +111,10 @@ body {
   justify-content: space-between;
   border-bottom: 0;
   background: var(--surface-glass);
-  padding: 0.65rem clamp(1rem, 4vw, 4rem);
+  /* 水平边距用固定值（与 .filter-shell 的 1.25rem 对齐）：logo 始终距左、按钮组始终距右，
+     不随视口浮动（原先的 clamp(1rem, 4vw, 4rem) 在不同宽度下是 16~64px，
+     顶栏与筛选栏的左边缘对不齐，看起来就像"没居左"）。 */
+  padding: 0.65rem 1.25rem;
   backdrop-filter: blur(18px);
 }
 
