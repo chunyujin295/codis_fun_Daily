@@ -72,9 +72,37 @@ node push-article.mjs ./article.html
 | `externalId` | 1–100 字符 |
 | `title` | 1–120 字符 |
 | **`summary`** | **最长 100 字**（含标点；中英文标点、数字各算 1 字） |
-| `category` | 必须是已启用且令牌有权发布的栏目 |
+| `category` | 必须是已启用且令牌有权发布的栏目（见下方"栏目怎么定"） |
 | `tags` | 最多 10 个，每个最长 30 字符 |
 | `language` | 默认 `zh-CN` |
+
+### 栏目怎么定（category）
+
+**不要写死栏目名，也不要靠猜 —— 站点有一个公开的栏目列表接口可以查。**
+
+```bash
+curl -s "https://codis.fun/Daily/api/v1/categories"
+```
+
+```json
+{
+  "categories": [
+    { "slug": "technology",   "name": "科技新闻", "color": "#73fbd3", "sortOrder": 10, "enabled": 1 },
+    { "slug": "medical",      "name": "医疗",     "color": "#ff9db0", "sortOrder": 20, "enabled": 1 },
+    { "slug": "cryptography", "name": "密码学",   "color": "#a78bfa", "sortOrder": 30, "enabled": 1 }
+  ]
+}
+```
+
+规则：
+
+1. 该接口**无需鉴权**，只返回**已启用**的栏目；结果缓存 60 秒。
+2. 写完正文后，按主题挑**最贴切**的一个，把它的 **`slug`** 填进 `category`（不是 `name`）。
+3. 接口不可用 / 正文明显不属于任何栏目时，退回**默认栏目**（`.env.agent` 里的 `DAILY_CATEGORY`，
+   也就是令牌绑定的那个栏目）。默认值一定是"站点已存在且令牌有权发布"的 slug。
+4. `slug` 只能用**小写字母、数字和连字符**（如 `ai-news`），写错会 422 `INVALID_CATEGORY`。
+5. **令牌不按栏目授权**：只要是站点已启用的栏目都可以发布。
+   若 slug 不存在或未启用，会返回 422 `UNKNOWN_CATEGORY`（那是栏目名写错，不是权限问题）。
 
 ### article.html
 
@@ -141,12 +169,19 @@ wc -c < work/submissions/<文章名>.html        # 必须 ≤ 2097152
   "externalId": "{{DEFAULT_CATEGORY}}-YYYY-MM-DD",
   "title": "文章标题",
   "summary": "不超过 100 字的摘要",
-  "category": "{{DEFAULT_CATEGORY}}",
+  "category": "<按下面规则判断出的栏目 slug>",
   "generatedAt": "YYYY-MM-DDTHH:mm:ss+08:00",
   "tags": ["标签1", "标签2"],
   "language": "zh-CN"
 }
 
+   **`category` 由你判断，不要照抄默认值**：
+   - 先查当前可用栏目（**免鉴权**）：`curl -s "<站点地址>/api/v1/categories"`，
+     返回 `{"categories":[{"slug":"technology","name":"科技新闻"},{"slug":"medical","name":"医疗"},...]}`。
+   - 读一遍自己写好的正文，挑**最贴切**的那个栏目，把它的 **`slug`** 填进 `category`（填 slug，不要填中文名）。
+   - 接口不可用，或正文确实不属于任何现有栏目时，才退回默认栏目 `{{DEFAULT_CATEGORY}}`。
+   - slug 只能用小写字母、数字、连字符（如 `ai-news`）；写错会 422 `INVALID_CATEGORY`。
+   - **令牌不限制栏目**，所以不会因栏目被拒；若返回 422 `UNKNOWN_CATEGORY`，说明该 slug 不存在或未启用，改用它返回的真实 slug。
    **⚠️ 摘要硬上限：`summary` 最多 100 字（含标点）。** 首页卡片只显示摘要的短短几行，
    超过 100 字会在卡片里溢出。请务必在写入前自行数字符确认；宁可更短，不要超限。
    其他字段上限：`title` ≤120 字、`externalId` ≤100 字符、`tags` 最多 10 个且每个 ≤30 字符。
