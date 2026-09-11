@@ -175,7 +175,7 @@ Firefox 不支持该属性。
 > 倒影高度 = 元素高度，会吃掉版面高度。侧卡因为被透视放大会更高，其倒影会落到区块裁切线以下 ——
 > 也就是说**只有中间卡片看得到倒影**，这是当前一屏约束下的既定取舍，不是 bug。
 
-### ⚠️ 侧卡（3D 旋转的卡片）不能画倒影
+### ⚠️ 侧卡倒影：竖屏不画、横屏才画（动态判断）
 
 **`-webkit-box-reflect` 遇到 3D 旋转会把倒影画高 20~30px，叠在卡片背面**。实测（390×844）：
 
@@ -184,13 +184,34 @@ Firefox 不支持该属性。
 | 中间卡 | 0° | y 524→639 | 525→647 | ✅ 正确 |
 | d2 侧卡 | 72° | y 480→530 | 499→559 | ❌ 整体高出 ~20px，叠在卡片背面 |
 
-所以侧卡（`.cover-card:not(.is-active) .cover-paper`，含 `.dark` 变体）用**全透明遮罩**关掉倒影：
+但**偏移量与视口无关**（1440×900 下 d1 同样画高 35px：实测 y 553→677，应为 595→731）。
+由于卡片不透明，重叠的那段会被卡片自身挡住，露出来的部分观感尚可 —— 桌面横屏还能接受；
+而竖屏（手机）版面下方空间很紧，倒影会顶到翻页器，观感就明显不对了。
+
+所以按屏幕方向动态开关：
 
 ```css
+/* 默认（竖屏/近方形，手机）：侧卡不画倒影 */
 .cover-card:not(.is-active) .cover-paper {
   -webkit-box-reflect: below 7px linear-gradient(rgba(0 0 0 / 0%), rgba(0 0 0 / 0%));
 }
-```
+.dark .cover-card:not(.is-active) .cover-paper {
+  -webkit-box-reflect: below 7px linear-gradient(rgba(0 0 0 / 0%), rgba(0 0 0 / 0%));
+}
+
+/* 横屏（宽 > 高，典型为桌面浏览器）：侧卡保留倒影 */
+@media (orientation: landscape) {
+  .cover-card:not(.is-active) .cover-paper {
+    -webkit-box-reflect: below 7px
+      linear-gradient(to bottom, rgb(0 0 0 / 0%) 0%, rgb(0 0 0 / 0%) 66%,
+        rgb(0 0 0 / 20%) 84%, rgb(0 0 0 / 42%) 100%);
+  }
+  .dark .cover-card:not(.is-active) .cover-paper {
+    -webkit-box-reflect: below 7px
+      linear-gradient(to bottom, rgb(0 0 0 / 0%) 0%, rgb(0 0 0 / 0%) 64%,
+        rgb(0 0 0 / 26%) 84%, rgb(0 0 0 / 50%) 100%);
+  }
+}
 
 **两个坑**：
 - **不能用 `-webkit-box-reflect: none` 来关** —— `none` 不是合法值，声明会被浏览器直接忽略
@@ -273,7 +294,7 @@ card.getBoundingClientRect();          // 变换后的实际包围盒
 | 侧卡比中间卡片还高 | `--depth` 不够，近端跑到中间卡前面 | 让 `|--depth| > (卡宽/2)·sinθ`（规则 3） |
 | 左右不对称 | `transform-origin` 没落在舞台中心 | 改用负外边距居中布局盒子 |
 | 倒影贴卡处看不见、远处才出现 | `-webkit-box-reflect` 遮罩方向写反 | 元素底部不透明、顶部透明 |
-| 侧卡背后透出镜像文字 | 3D 旋转下 `-webkit-box-reflect` 倒影画高 20~30px | 侧卡不画倒影（全透明遮罩），只保留中间卡（§7） |
+| 竖屏下侧卡背后透出镜像文字 | 3D 旋转下 `-webkit-box-reflect` 倒影画高 20~30px | 竖屏不画侧卡倒影，横屏保留（§7） |
 | 想关倒影却关不掉 | `-webkit-box-reflect: none` 不是合法值，声明被忽略 | 用全透明遮罩 `linear-gradient(rgba(0 0 0/0%),rgba(0 0 0/0%))` |
 | 页面出现滚动条 / 倒影被切 | `.coverflow-section` 被压缩 | `flex: 1 0 auto`（不能只写 `1`） |
 | 改了样式"没生效" | 项目是 `globals.css` + `coverflow.css` 双层样式表 | 先 grep 另一个文件，用 `getComputedStyle` 读实际值 |
