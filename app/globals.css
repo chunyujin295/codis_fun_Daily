@@ -65,10 +65,12 @@
   --shadow-sm: 0 1px 2px rgb(16 24 40 / 4%), 0 8px 24px rgb(16 24 40 / 5%);
   --shadow-lg: 0 24px 70px rgb(30 41 59 / 12%);
   --font-sans:
-    'Inter', 'Noto Sans SC', 'Microsoft YaHei UI', 'PingFang SC', system-ui,
-    sans-serif;
+    var(--font-inter), var(--font-noto-sans-sc), 'Microsoft YaHei UI',
+    'PingFang SC', system-ui, sans-serif;
   --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-  --font-heading: 'Noto Serif SC', 'Source Han Serif SC', STSong, serif;
+  --font-heading:
+    var(--font-noto-serif-sc), var(--font-noto-sans-sc), 'Source Han Serif SC',
+    STSong, serif;
 }
 
 .dark {

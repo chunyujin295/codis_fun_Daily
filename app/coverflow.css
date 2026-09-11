@@ -31,11 +31,11 @@
   --material-shadow: rgb(0 0 0 / 11%);
   --radius: 1.1rem;
   --font-sans:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Noto Sans SC',
-    'Microsoft YaHei UI', sans-serif;
+    var(--font-inter), var(--font-noto-sans-sc), -apple-system,
+    BlinkMacSystemFont, 'SF Pro Text', 'Microsoft YaHei UI', sans-serif;
   --font-heading:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Noto Sans SC',
-    'Microsoft YaHei UI', sans-serif;
+    var(--font-noto-serif-sc), var(--font-noto-sans-sc), -apple-system,
+    BlinkMacSystemFont, 'SF Pro Display', 'Microsoft YaHei UI', sans-serif;
 }
 
 .dark {
@@ -211,6 +211,7 @@ body {
 .overview-link {
   display: inline-flex;
   flex: 0 0 auto;
+  margin-left: auto;
   align-items: center;
   gap: 0.32rem;
   min-height: 2.3rem;
