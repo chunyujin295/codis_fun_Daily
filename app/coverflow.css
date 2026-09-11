@@ -348,18 +348,38 @@ body {
 }
 
 .cover-card {
-  --shift: 0px;
-  --shift-mobile: 0px;
-  --cover-scale: 1;
+  /* 每张卡片自带透视：透视原点即卡片自身中心，侧边卡片才能"原地立起来"。
+     若共用父级 perspective（消失点在舞台中心），偏心 + 大转角会把卡片压成一条细缝。
+     透视距离/后退量都按卡片宽度取比例，这样视口把卡片压小时比例不失真。 */
+  --persp: calc(var(--card-size) * 2.4);
+  /* 旋转朝向开关：-1 = 苹果方向（左侧卡 rotateY 正、右侧卡负）；1 = 其镜像。
+     只改这一个数字即可整体翻转，不用动下面的 transform。
+     注：Bramus 的官方 Cover Flow 复刻用的是 +1 那套映射，但本项目以 -1 的观感为准。 */
+  --turn: -1;
+  /* 侧边封面绕竖轴"立起来"：角度随距离递增，越远转得越多（远者角度渐饱和） */
+  --rot: calc(56deg + var(--distance, 0) * 8deg);
+  /* 横向间距（屏幕空间，见下方 transform 顺序说明）。
+     注意与 --turn 联动：翻向会让投影在卡片自身坐标系里镜像，
+     内侧边随之外移，所以换 --turn 时要回头核一下"后叠量"（内侧边压住中间卡片多少）。 */
+  --shift: calc(58% + (var(--distance, 1) - 1) * 24%);
+  /* 纵深：必须大于 (卡宽/2 · sinθ)，否则侧卡的近端会跑到中间卡片"前面"、
+     被透视放大得比中间卡片还高（实测 -70px 时近端 z=+118.7 → 高 477 > 420）。 */
+  --depth: calc(var(--distance, 0) * var(--card-size) * -0.57);
   --cover-color: var(--brand);
   position: absolute;
   top: 36%;
   left: 50%;
+  /* 用负外边距把"布局盒子"本身居中，而不是靠 translate(-50%)。
+     这样 transform-origin(=盒子中心) 恒定落在舞台中心，每张卡片的
+     透视消失点才是同一个固定点，左右两侧完全对称。 */
+  margin-top: calc(var(--card-size) / -2);
+  margin-left: calc(var(--card-size) / -2);
   display: block;
   width: var(--card-size);
   aspect-ratio: 1;
   container-type: inline-size;
   color: var(--ink);
+  transform-origin: 50% 50%;
   transition:
     transform 620ms cubic-bezier(0.22, 0.82, 0.24, 1),
     opacity 420ms ease,
@@ -370,29 +390,30 @@ body {
 .cover-card.is-active {
   opacity: 1;
   filter: none;
-  transform: translate3d(calc(-50% + var(--drag-offset)), -50%, 0) scale(1);
+  transform: translate3d(var(--drag-offset), 0, 0);
 }
 
+/* transform 列表顺序 = 从右往左作用。
+   横向位移必须写在 perspective **左侧**（即投影之后再平移）：
+   若把 translateX 塞进透视组内，卡片左右两端 z 不同 → 两端的横向位移被
+   不同的缩放因子放大/缩小，结果整张卡被"剪"成一条窄缝（实测 242px → 157px）。
+   正确写法 = 先绕自身中心投影，再整体横移。 */
 .cover-card.is-left {
-  opacity: calc(0.97 - var(--distance) * 0.075);
-  filter: saturate(0.86) brightness(0.97);
-  transform: translate3d(
-      calc(-50% - var(--shift) + var(--drag-offset)),
-      -50%,
-      0
-    )
-    scale(var(--cover-scale));
+  opacity: calc(0.98 - var(--distance) * 0.09);
+  filter: saturate(0.88) brightness(0.97);
+  transform: translate3d(calc(-1 * var(--shift) + var(--drag-offset)), 0, 0)
+    perspective(var(--persp))
+    translateZ(var(--depth))
+    rotateY(calc(-1 * var(--turn) * var(--rot)));
 }
 
 .cover-card.is-right {
-  opacity: calc(0.97 - var(--distance) * 0.075);
-  filter: saturate(0.86) brightness(0.97);
-  transform: translate3d(
-      calc(-50% + var(--shift) + var(--drag-offset)),
-      -50%,
-      0
-    )
-    scale(var(--cover-scale));
+  opacity: calc(0.98 - var(--distance) * 0.09);
+  filter: saturate(0.88) brightness(0.97);
+  transform: translate3d(calc(var(--shift) + var(--drag-offset)), 0, 0)
+    perspective(var(--persp))
+    translateZ(var(--depth))
+    rotateY(calc(var(--turn) * var(--rot)));
 }
 
 .cover-card.is-hidden {
@@ -835,29 +856,15 @@ body {
   }
 
   .coverflow-stage {
-    --card-size: clamp(14rem, 66vw, 19rem);
+    --card-size: clamp(11rem, 58vw, 19rem);
   }
 
-  .cover-card.is-left {
-    transform: translate3d(
-        calc(-50% - var(--shift-mobile) + var(--drag-offset)),
-        -50%,
-        0
-      )
-      scale(var(--cover-scale));
-  }
-
-  .cover-card.is-right {
-    transform: translate3d(
-        calc(-50% + var(--shift-mobile) + var(--drag-offset)),
-        -50%,
-        0
-      )
-      scale(var(--cover-scale));
-  }
-
-  .cover-copy > strong {
-    font-size: clamp(1.5rem, 5.6vw, 2.1rem);
+  /* 窄屏：转角更缓、间距更紧，保证两侧封面不被视口硬切。
+     turn=-1 时卡片朝外张得更开，所以间距要比 turn=1 时更收。
+     --persp / --depth 已按卡宽比例自适应，无需在此重复。 */
+  .cover-card {
+    --rot: calc(48deg + var(--distance, 0) * 7deg);
+    --shift: calc(48% + (var(--distance, 1) - 1) * 12%);
   }
 
   .coverflow-caption {

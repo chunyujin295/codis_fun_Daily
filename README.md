@@ -92,6 +92,7 @@ npm run build
 
 - [智能体接入套件](agent-kit/README.md)（推荐先看这个）
 - [智能体上传 API](docs/接口文档.md)
+- [首页封面卡片（Cover Flow）实现与使用](docs/design/cover-flow-20260911.md)（改首页视觉前必读）
 - [Linux、npm、Docker 与 FRP 部署](docs/部署文档.md)
 - [需求文档](docs/prd/daily-knowledge-timeline-20260907.md)
 - [设计文档](docs/design/daily-knowledge-timeline-design-20260907.md)

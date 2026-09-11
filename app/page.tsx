@@ -491,12 +491,6 @@ export default function Home() {
                     style={
                       {
                         '--distance': visibleDistance,
-                        '--shift': `${visibleDistance === 0 ? 0 : 300 + (visibleDistance - 1) * 116}px`,
-                        '--shift-mobile': `${visibleDistance === 0 ? 0 : 122 + (visibleDistance - 1) * 44}px`,
-                        '--cover-scale': Math.max(
-                          0.66,
-                          0.9 - visibleDistance * 0.075,
-                        ),
                         '--cover-color': track.color,
                         zIndex: visibleTracks.length - distance,
                       } as CSSProperties
