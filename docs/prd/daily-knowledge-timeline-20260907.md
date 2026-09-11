@@ -157,7 +157,7 @@ approved_at: 2026-09-07T17:14:31+08:00
 | 协议版本 | `schemaVersion` | string | 是 | MVP 固定为 `1` | 上传者 |
 | 外部文章 ID | `externalId` | string | 是 | 与 `uploaderId` 组合唯一，1–100 字符；用于覆盖更新 | 上传者 |
 | 标题 | `title` | string | 是 | 去除首尾空白后 1–120 字符 | 上传者 |
-| 摘要 | `summary` | string | 否 | 最多 300 字符；空缺时不在 MVP 自动生成 | 上传者 |
+| 摘要 | `summary` | string | 否 | 最多 100 字符（首页卡片只显示开头几行）；空缺时不在 MVP 自动生成 | 上传者 |
 | 栏目 | `category` | string | 是 | 必须匹配已启用栏目的稳定 slug | 上传者 |
 | 生成时间 | `generatedAt` | ISO 8601 string | 是 | 文章生成时间，必须带时区偏移；服务端转为站点时区归档 | 上传者 |
 | 标签 | `tags` | string[] | 否 | 最多 10 个；每个 1–30 字符；规范化去重 | 上传者 |

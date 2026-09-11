@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
-import { ARTICLE_MAX_BYTES, BASE_PATH, SITE_TIME_ZONE } from '@/lib/constants';
+import {
+  ARTICLE_MAX_BYTES,
+  BASE_PATH,
+  SITE_TIME_ZONE,
+  SUMMARY_MAX_LENGTH,
+} from '@/lib/constants';
 import type { UploadPrincipal } from '@/lib/auth';
 import { sha256 } from '@/lib/crypto';
 import { getDb } from '@/lib/db';
@@ -17,7 +22,7 @@ export const articleInputSchema = z.object({
     .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/),
   externalId: z.string().trim().min(1).max(100),
   title: z.string().trim().min(1).max(120),
-  summary: z.string().trim().max(300).default(''),
+  summary: z.string().trim().max(SUMMARY_MAX_LENGTH).default(''),
   category: z.string().trim().min(1).max(60),
   generatedAt: z.iso.datetime({ offset: true }),
   tags: z.array(z.string().trim().min(1).max(30)).max(10).default([]),

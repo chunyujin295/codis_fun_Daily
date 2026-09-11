@@ -77,6 +77,22 @@ for (const field of [
   }
 }
 
+const summaryLength =
+  typeof metadata.summary === 'string' ? metadata.summary.trim().length : 0;
+if (summaryLength > 100) {
+  throw new Error(
+    `metadata.summary is ${summaryLength} characters; the hard limit is 100`,
+  );
+}
+
+// base64 内嵌图片会让 HTML 体积涨约 1.33 倍，而服务端只接受 2 MB 以内的 HTML。
+const htmlBytes = Buffer.byteLength(html, 'utf8');
+if (htmlBytes > 2 * 1024 * 1024) {
+  throw new Error(
+    `article HTML is ${(htmlBytes / 1024 / 1024).toFixed(2)} MB (${htmlBytes} bytes); the hard limit is 2 MB (2097152 bytes) - compress the base64 images`,
+  );
+}
+
 const body = JSON.stringify({ ...metadata, html });
 const idempotencyKey =
   process.env.DAILY_IDEMPOTENCY_KEY ??

@@ -173,7 +173,7 @@ Idempotency-Key: agent-<sha256-of-canonical-request>
 | `uploaderId` | 1～80 字符，只允许字母、数字、点、下划线和连字符 |
 | `externalId` | 1～100 字符，同一逻辑文章保持不变 |
 | `title` | 1～120 字符 |
-| `summary` | 最长 300 字符 |
+| `summary` | 最长 100 字符（首页卡片只显示摘要开头几行，超长会溢出） |
 | `category` | 必须是已启用且令牌有权发布的栏目 |
 | `generatedAt` | ISO 8601，必须包含时区偏移 |
 | `tags` | 最多 10 个，每个最长 30 字符 |

@@ -57,13 +57,24 @@ node push-article.mjs ./article.html
   "uploaderId": "your-uploader-id",
   "externalId": "category-YYYY-MM-DD",
   "title": "文章标题",
-  "summary": "不超过 300 字的摘要",
+  "summary": "不超过 100 字的摘要（硬上限，超出会被服务端拒绝）",
   "category": "technology",
   "generatedAt": "2026-09-10T10:00:00+08:00",
   "tags": ["标签1", "标签2"],
   "language": "zh-CN"
 }
 ```
+
+**各字段长度上限（服务端强制校验，超限返回 422）：**
+
+| 字段 | 约束 |
+|------|------|
+| `externalId` | 1–100 字符 |
+| `title` | 1–120 字符 |
+| **`summary`** | **最长 100 字**（含标点；中英文标点、数字各算 1 字） |
+| `category` | 必须是已启用且令牌有权发布的栏目 |
+| `tags` | 最多 10 个，每个最长 30 字符 |
+| `language` | 默认 `zh-CN` |
 
 ### article.html
 
@@ -79,6 +90,25 @@ node push-article.mjs ./article.html
 - 只包含文章正文，不包含 `<html>`、`<head>`、`<body>` 等外层标签
 - 图片应该先下载下来，然后转成 base64 内嵌到网页中（支持 HTTP/HTTPS 链接）
 - 参考 `examples/article-template.html` 确保样式符合网站风格
+
+**体积上限（重要，base64 内嵌图片的实际瓶颈就在这里）：**
+
+| 限制项 | 数值 | 说明 |
+|--------|------|------|
+| **HTML 总大小（含 base64 图片）** | **≤ 2 MB**（2,097,152 字节） | 服务端按 UTF-8 字节数校验，超出返回 **413 `ARTICLE_TOO_LARGE`** |
+| **内嵌图片原始体积合计** | **建议 ≤ 1 MB**（硬上限约 1.4 MB） | base64 比原图 **大约 1.33 倍**，所以 2 MB 的 HTML 里大约只能装 1.4 MB 的原图 |
+| 单张内嵌图片 | 建议 ≤ 300 KB | 例如 5 张图 → 平均每张 ≤ 290 KB |
+| `<img>` 数量 | ≤ 20 张 | 超出返回 `TOO_MANY_IMAGES` |
+
+> ⚠️ **不要被"单张 10 MB / 总计 40 MB"误导**：那两个上限只对**远程外链图片**生效
+> （服务端自己去下载时才有体积检查）。**base64 内嵌的图片不走那条路径**，
+> 真正管住它的是上面这条 **HTML ≤ 2 MB**。所以内嵌前务必先压缩、降分辨率。
+
+推送前请自行确认字节数：
+
+```bash
+wc -c < work/submissions/<文章名>.html        # 必须 ≤ 2097152
+```
 
 ---
 
@@ -96,20 +126,30 @@ node push-article.mjs ./article.html
    - <文章名>.html
    - <文章名>.metadata.json
 3. HTML 只包含文章正文，推荐使用 article、标题、段落、列表、引用、表格、链接和图片。不加入 JavaScript、CSS、iframe、表单、SVG、音频或视频。图片应该先下载下来，然后转成 base64 内嵌到网页中（支持 HTTP/HTTPS 链接）。
+
+   **⚠️ 体积硬上限：整个 HTML（含 base64 图片）必须 ≤ 2 MB**（2,097,152 字节），超出会被 413 `ARTICLE_TOO_LARGE` 拒收。
+   base64 比原图大约 1.33 倍，所以**所有内嵌图片的原始体积合计要控制在 1 MB 左右**（硬上限约 1.4 MB），
+   单张建议 ≤300 KB，`<img>` 最多 20 张。**内嵌前务必先压缩 / 降分辨率**（JPEG 或 WebP、宽边 1200px 以内通常就够）。
+   注意"单张 10 MB / 总计 40 MB"那两个上限**只对外链图片生效**，base64 内嵌不适用，别被误导。
+   写完请用 `wc -c < 文章名>.html` 确认 ≤ 2097152。
 4. 参考 docs/article-template.html 模板，确保 HTML 结构和样式符合网站整体设计风格。
-5. 元数据 JSON 必须采用下面结构：
+5. 元数据 JSON 必须采用下面结构。**各字段长度是服务端强制校验的硬上限，超出会返回 422 拒绝入库**：
 
 {
   "schemaVersion": "1",
   "uploaderId": "{{UPLOADER_ID}}",
   "externalId": "{{DEFAULT_CATEGORY}}-YYYY-MM-DD",
   "title": "文章标题",
-  "summary": "不超过 300 字的摘要",
+  "summary": "不超过 100 字的摘要",
   "category": "{{DEFAULT_CATEGORY}}",
   "generatedAt": "YYYY-MM-DDTHH:mm:ss+08:00",
   "tags": ["标签1", "标签2"],
   "language": "zh-CN"
 }
+
+   **⚠️ 摘要硬上限：`summary` 最多 100 字（含标点）。** 首页卡片只显示摘要的短短几行，
+   超过 100 字会在卡片里溢出。请务必在写入前自行数字符确认；宁可更短，不要超限。
+   其他字段上限：`title` ≤120 字、`externalId` ≤100 字符、`tags` 最多 10 个且每个 ≤30 字符。
 
 6. 在项目根目录执行推送命令：
    npm run publish -- ./work/submissions/<文章名>.html
