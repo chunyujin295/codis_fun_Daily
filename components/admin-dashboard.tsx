@@ -126,7 +126,13 @@ export function AdminDashboard({
   const [articles, setArticles] = useState(initialArticles);
   const [message, setMessage] = useState('');
   const [ttsEnabled, setTtsEnabled] = useState(tts.enabled);
-  const [issuedToken, setIssuedToken] = useState<string | null>(null);
+  const [issuingToken, setIssuingToken] = useState(false);
+  // 「文章」列表的"上传者"列：优先显示显示名，映射不到（上传者已被删）时回退为 uploaderId。
+  const uploaderNames = new Map(
+    uploaders.map((uploader) => [uploader.id, uploader.displayName]),
+  );
+  const uploaderName = (uploaderId: string) =>
+    uploaderNames.get(uploaderId) ?? uploaderId;
   const [activeTab, setActiveTab] = useState(() => {
     // 从 URL hash 中读取初始 tab
     const hash = window.location.hash.slice(1);
@@ -276,8 +282,11 @@ export function AdminDashboard({
 
   async function createUploadToken(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
+    // 防连点：签发期间按钮置灰，避免重复签发出多个令牌。
+    if (issuingToken) return;
     const form = new FormData(event.currentTarget);
     const expiresAt = form.get('expiresAt');
+    setIssuingToken(true);
     try {
       const result = await call('/uploaders', {
         method: 'POST',
@@ -294,15 +303,11 @@ export function AdminDashboard({
       });
       const token = result.token as { token?: string } | undefined;
       if (!token?.token) throw new Error('服务器没有返回令牌');
-      setIssuedToken(token.token);
-      setMessage('令牌签发成功。请立即复制；3秒后刷新页面。');
-      event.currentTarget.reset();
-      // 3秒后刷新页面，更新列表并清空令牌显示
-      setTimeout(() => {
-        setIssuedToken(null);
-        window.location.reload();
-      }, 3000);
+      // 签发成功立即整页刷新：新令牌会出现在下方列表里，可在列表中随时复制，
+      // 所以不需要在此处停留展示明文。按钮保持置灰直到刷新完成，杜绝连点重复签发。
+      window.location.reload();
     } catch (error) {
+      setIssuingToken(false);
       setMessage(error instanceof Error ? error.message : '令牌签发失败');
     }
   }
@@ -463,6 +468,7 @@ export function AdminDashboard({
             <TableHeader>
               <TableRow>
                 <TableHead>文章</TableHead>
+                <TableHead>上传者</TableHead>
                 <TableHead>栏目</TableHead>
                 <TableHead>版本</TableHead>
                 <TableHead>语音</TableHead>
@@ -480,9 +486,16 @@ export function AdminDashboard({
                     >
                       {article.title}
                     </Link>
-                    <small>
-                      {article.uploaderId} · {article.externalId}
-                    </small>
+                    <small>{article.externalId}</small>
+                  </TableCell>
+                  <TableCell>
+                    <div>{uploaderName(article.uploaderId)}</div>
+                    {uploaderName(article.uploaderId) !==
+                      article.uploaderId && (
+                      <small style={{ color: 'var(--muted-foreground)' }}>
+                        {article.uploaderId}
+                      </small>
+                    )}
                   </TableCell>
                   <TableCell>{article.category}</TableCell>
                   <TableCell>v{article.version}</TableCell>
@@ -691,27 +704,10 @@ export function AdminDashboard({
           <div className="panel-heading">
             <div>
               <h2>智能体与上传令牌</h2>
-              <p>每个令牌绑定固定上传者和栏目；令牌明文只显示一次。</p>
+              <p>每个令牌绑定固定上传者；令牌可在下方列表里随时复制。</p>
             </div>
             <KeyRound />
           </div>
-
-          {issuedToken ? (
-            <section className="admin-form">
-              <label htmlFor="issued-upload-token">
-                新令牌（请立即保存）
-                <Input
-                  id="issued-upload-token"
-                  value={issuedToken}
-                  readOnly
-                  onFocus={(event) => event.currentTarget.select()}
-                />
-              </label>
-              <small>
-                该值不会再次显示；请保存到智能体机器的 Secret 或环境变量中。
-              </small>
-            </section>
-          ) : null}
 
           <div style={{ overflowX: 'auto' }}>
             <Table>
@@ -901,7 +897,9 @@ export function AdminDashboard({
               该令牌可发布到站点上的<strong>任意已启用栏目</strong>（不按栏目授权）。
               栏目列表以 <code>/api/v1/categories</code> 实时返回为准。
             </p>
-            <Button type="submit">签发独立令牌</Button>
+            <Button type="submit" disabled={issuingToken}>
+              {issuingToken ? '签发中…' : '签发独立令牌'}
+            </Button>
           </form>
         </TabsContent>
 
