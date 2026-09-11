@@ -39,12 +39,9 @@ export async function POST(request: NextRequest) {
       language: 'zh-CN',
       html: await file.text(),
     };
-    const result = await submitArticle(input, `admin-${randomUUID()}`, {
-      adminRepublish: form.get('republish') === 'on',
-    });
+    const result = await submitArticle(input, `admin-${randomUUID()}`);
     auditAdmin('ARTICLE_UPLOAD', 'article', result.article.id, {
       version: result.article.version,
-      republished: form.get('republish') === 'on',
     });
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

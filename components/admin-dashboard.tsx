@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState, type SyntheticEvent } from 'react';
 import Link from 'next/link';
 import {
-  Archive,
   BookOpen,
   KeyRound,
   LogOut,
@@ -116,7 +115,7 @@ export function AdminDashboard({
 }: {
   csrfToken: string;
   overview: {
-    articleCounts: { total: number; published: number; archived: number };
+    articleCounts: { total: number; published: number };
     ttsCounts: { total: number; ready: number; failed: number };
   };
   articles: AdminArticle[];
@@ -173,18 +172,15 @@ export function AdminDashboard({
     [csrfToken],
   );
 
-  const archiveArticle = useCallback(
+  const deleteArticle = useCallback(
     async (articleId: string) => {
-      await call(`/articles/${articleId}/archive`, { method: 'POST' });
+      await call(`/articles/${articleId}/delete`, { method: 'POST' });
+      // 库里已删除，直接从列表移除；不再有归档状态
       setArticles((current) =>
-        current.map((article) =>
-          article.id === articleId
-            ? { ...article, status: 'archived' }
-            : article,
-        ),
+        current.filter((article) => article.id !== articleId),
       );
-      setMessage('文章已删除。');
-      return { articleId, status: 'archived' };
+      setMessage('文章已彻底删除（数据库记录与音频文件均已清除）。');
+      return { articleId, deleted: true };
     },
     [call],
   );
@@ -197,10 +193,10 @@ export function AdminDashboard({
     void Promise.resolve(
       context.registerTool(
         {
-          name: 'archive_article',
-          title: '撤下文章',
+          name: 'delete_article',
+          title: '删除文章',
           description:
-            '撤下管理后台中指定 ID 的文章，并同步停止公开正文和音频。',
+            '彻底删除管理后台中指定 ID 的文章：连同所有版本、媒体与音频记录一起从数据库移除，不可恢复。',
           inputSchema: {
             type: 'object',
             properties: { articleId: { type: 'string', minLength: 1 } },
@@ -216,14 +212,14 @@ export function AdminDashboard({
                 ? String((input as { articleId: unknown }).articleId)
                 : '';
             if (!articleId) throw new Error('articleId is required');
-            return archiveArticle(articleId);
+            return deleteArticle(articleId);
           },
         },
         { signal: lifecycle.signal },
       ),
     ).catch(() => undefined);
     return () => lifecycle.abort();
-  }, [archiveArticle]);
+  }, [deleteArticle]);
 
   async function uploadArticle(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -290,7 +286,6 @@ export function AdminDashboard({
           uploaderId: form.get('uploaderId'),
           displayName: form.get('displayName'),
           tokenName: form.get('tokenName'),
-          categories: form.getAll('categories'),
           expiresAt:
             typeof expiresAt === 'string' && expiresAt
               ? new Date(expiresAt).toISOString()
@@ -436,12 +431,6 @@ export function AdminDashboard({
           <small>{overview.articleCounts.published ?? 0} 篇公开</small>
         </div>
         <div>
-          <Archive />
-          <span>已撤下</span>
-          <strong>{overview.articleCounts.archived ?? 0}</strong>
-          <small>不会被智能体更新恢复</small>
-        </div>
-        <div>
           <Volume2 />
           <span>语音</span>
           <strong>{overview.ttsCounts.ready ?? 0}</strong>
@@ -467,7 +456,7 @@ export function AdminDashboard({
           <div className="panel-heading">
             <div>
               <h2>文章</h2>
-              <p>只能浏览、撤下或上传完整新版本，不提供正文编辑器。</p>
+              <p>只能浏览、删除或上传完整新版本，不提供正文编辑器。</p>
             </div>
           </div>
           <Table>
@@ -502,7 +491,7 @@ export function AdminDashboard({
                   </TableCell>
                   <TableCell>
                     <span className={`status-pill status-${article.status}`}>
-                      {article.status === 'published' ? '公开' : '已撤下'}
+                      {article.status === 'published' ? '公开' : '已删除'}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -511,23 +500,24 @@ export function AdminDashboard({
                         <AlertDialogTrigger
                           render={<Button variant="destructive" size="sm" />}
                         >
-                          撤下
+                          删除
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>撤下这篇文章？</AlertDialogTitle>
+                            <AlertDialogTitle>删除这篇文章？</AlertDialogTitle>
                             <AlertDialogDescription>
-                              正文和音频将立即对匿名读者返回
-                              404，智能体后续更新不会自动恢复公开。
+                              将从数据库中彻底删除该文章及其全部版本、媒体与音频记录，
+                              并清理磁盘上的音频文件。<strong>此操作不可恢复</strong>，
+                              智能体后续用相同 externalId 推送会作为全新文章处理。
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>取消</AlertDialogCancel>
                             <AlertDialogCancel
                               variant="destructive"
-                              onClick={() => void archiveArticle(article.id)}
+                              onClick={() => void deleteArticle(article.id)}
                             >
-                              确认撤下
+                              确认删除
                             </AlertDialogCancel>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -611,10 +601,6 @@ export function AdminDashboard({
                 accept="text/html,.html"
                 required
               />
-            </label>
-            <label htmlFor="upload-republish" className="checkbox-line">
-              <input id="upload-republish" name="republish" type="checkbox" />
-              如果文章已撤下，本次更新后重新公开
             </label>
             <Button type="submit" size="lg">
               <Upload />
@@ -793,7 +779,7 @@ export function AdminDashboard({
                                 : '长期有效'}
                             </small>
                           </TableCell>
-                          <TableCell>{token.categories.join('、')}</TableCell>
+                          <TableCell>全部栏目（不限制）</TableCell>
                           <TableCell>{uploader.articleCount}</TableCell>
                           <TableCell>
                             {token.lastUsedAt
@@ -911,23 +897,10 @@ export function AdminDashboard({
                 type="datetime-local"
               />
             </label>
-            <fieldset className="form-wide">
-              <legend>允许发布的栏目</legend>
-              <div className="category-admin-list">
-                {categories
-                  .filter((category) => category.enabled)
-                  .map((category) => (
-                    <label key={category.slug} className="checkbox-line">
-                      <input
-                        name="categories"
-                        type="checkbox"
-                        value={category.slug}
-                      />
-                      {category.name}
-                    </label>
-                  ))}
-              </div>
-            </fieldset>
+            <p className="form-wide form-notice">
+              该令牌可发布到站点上的<strong>任意已启用栏目</strong>（不按栏目授权）。
+              栏目列表以 <code>/api/v1/categories</code> 实时返回为准。
+            </p>
             <Button type="submit">签发独立令牌</Button>
           </form>
         </TabsContent>

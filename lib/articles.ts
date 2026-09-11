@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { unlink } from 'node:fs/promises';
+import path from 'node:path';
 import { z } from 'zod';
 
 import {
@@ -9,7 +11,7 @@ import {
 } from '@/lib/constants';
 import type { UploadPrincipal } from '@/lib/auth';
 import { sha256 } from '@/lib/crypto';
-import { getDb } from '@/lib/db';
+import { getDataRoot, getDb } from '@/lib/db';
 import { processArticleHtml, type StoredMedia } from '@/lib/html';
 
 export const articleInputSchema = z.object({
@@ -47,7 +49,7 @@ type ExistingArticle = {
   id: string;
   slug: string;
   currentVersion: number;
-  status: 'published' | 'archived';
+  status: 'published';
 };
 
 export type ArticleSubmissionResult = {
@@ -60,7 +62,7 @@ export type ArticleSubmissionResult = {
     contentDate: string;
     category: string;
     contentHash: string;
-    status: 'published' | 'archived';
+    status: 'published';
     audioStatus: 'queued' | 'unavailable';
   };
   replayed?: boolean;
@@ -74,9 +76,9 @@ export function assertUploadPrincipal(
   if (input.uploaderId !== principal.uploaderId) {
     throw new ArticleError('UPLOADER_MISMATCH', 403);
   }
-  if (!principal.allowedCategories.includes(input.category)) {
-    throw new ArticleError('CATEGORY_FORBIDDEN', 403);
-  }
+  // 栏目不再按令牌限制（2026-09-11 起）：只要是站点已启用的栏目都可以发布。
+  // 之前这里会校验 principal.allowedCategories，导致令牌必须逐个授权栏目。
+  // 栏目本身是否启用仍会在下面校验（未启用 → UNKNOWN_CATEGORY）。
 }
 
 function getContentDate(generatedAt: string) {
@@ -136,7 +138,6 @@ export async function submitArticle(
   rawInput: unknown,
   idempotencyKey: string,
   options: {
-    adminRepublish?: boolean;
     expectedExternalId?: string;
     principal?: UploadPrincipal;
   } = {},
@@ -219,9 +220,7 @@ export async function submitArticle(
       ensureUniqueSlug(
         makeSlug(contentDate, input.category, input.externalId, input.uploaderId),
       );
-    const status = options.adminRepublish
-      ? 'published'
-      : (existing?.status ?? 'published');
+    const status = existing?.status ?? 'published';
 
     db.prepare(`
       INSERT INTO uploaders(id, display_name, enabled, created_at, updated_at)
@@ -484,36 +483,53 @@ export function getAdminArticles() {
   }[];
 }
 
-export function setArticleArchived(articleId: string, archived: boolean) {
-  if (archived) {
-    // 彻底删除文章及其所有版本和关联数据
-    const db = getDb();
-    const article = db
-      .prepare('SELECT id FROM articles WHERE id = ?')
-      .get(articleId) as { id: string } | undefined;
-    if (!article) return false;
+/**
+ * 彻底删除一篇文章：数据库里不留任何关联记录，并清理磁盘上的音频文件。
+ *
+ * 删除顺序（外键已开启，tts_jobs / audio_assets 会随版本级联删除）：
+ *   1. article_version_media（版本与媒体的关联）
+ *   2. article_versions（级联带走 tts_jobs、audio_assets）
+ *   3. articles
+ *   4. media_blobs 中已无任何版本引用的孤儿记录
+ * 最后删除音频文件（图片不落盘，只存 data URI，所以没有图片文件要删）。
+ */
+export async function deleteArticle(articleId: string) {
+  const db = getDb();
+  const article = db
+    .prepare('SELECT id FROM articles WHERE id = ?')
+    .get(articleId) as { id: string } | undefined;
+  if (!article) return false;
 
-    db.transaction(() => {
-      // 删除关联的媒体文件记录
-      db.prepare(
-        `DELETE FROM article_version_media WHERE article_version_id IN
-         (SELECT id FROM article_versions WHERE article_id = ?)`,
-      ).run(articleId);
-      // 删除文章版本
-      db.prepare('DELETE FROM article_versions WHERE article_id = ?').run(
-        articleId,
-      );
-      // 删除文章
-      db.prepare('DELETE FROM articles WHERE id = ?').run(articleId);
-    })();
-    return true;
-  } else {
-    // 恢复发布
-    const result = getDb()
-      .prepare('UPDATE articles SET status = ?, updated_at = ? WHERE id = ?')
-      .run('published', new Date().toISOString(), articleId);
-    return result.changes > 0;
-  }
+  const audioAssets = db
+    .prepare(
+      `SELECT relative_path AS relativePath FROM audio_assets
+       WHERE article_version_id IN (SELECT id FROM article_versions WHERE article_id = ?)`,
+    )
+    .all(articleId) as { relativePath: string }[];
+
+  db.transaction(() => {
+    db.prepare(
+      `DELETE FROM article_version_media WHERE article_version_id IN
+       (SELECT id FROM article_versions WHERE article_id = ?)`,
+    ).run(articleId);
+    db.prepare('DELETE FROM article_versions WHERE article_id = ?').run(
+      articleId,
+    );
+    db.prepare('DELETE FROM articles WHERE id = ?').run(articleId);
+    // 清理不再被任何文章版本引用的媒体记录（media_blobs 按内容哈希共享，
+    // 只删没有引用的，避免误删其他文章还在用的图）
+    db.prepare(
+      `DELETE FROM media_blobs
+       WHERE hash NOT IN (SELECT media_hash FROM article_version_media)`,
+    ).run();
+  })();
+
+  await Promise.allSettled(
+    audioAssets
+      .filter((asset) => asset.relativePath)
+      .map((asset) => unlink(path.join(getDataRoot(), asset.relativePath))),
+  );
+  return true;
 }
 
 export function getOverview() {
@@ -521,11 +537,10 @@ export function getOverview() {
   const articleCounts = db
     .prepare(`
       SELECT COUNT(*) AS total,
-        SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) AS published,
-        SUM(CASE WHEN status = 'archived' THEN 1 ELSE 0 END) AS archived
+        SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) AS published
       FROM articles
     `)
-    .get() as { total: number; published: number; archived: number };
+    .get() as { total: number; published: number };
   const ttsCounts = db
     .prepare(`
       SELECT COUNT(*) AS total,

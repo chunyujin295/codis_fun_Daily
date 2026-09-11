@@ -76,7 +76,7 @@ function createDatabase() {
       slug TEXT NOT NULL UNIQUE,
       uploader_id TEXT NOT NULL,
       current_version INTEGER NOT NULL,
-      status TEXT NOT NULL CHECK(status IN ('published', 'archived')),
+      status TEXT NOT NULL CHECK(status = 'published'),
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       UNIQUE(uploader_id, external_id)

@@ -56,10 +56,15 @@ describe('upload principal authorization', () => {
     ).toThrow(new ArticleError('UPLOADER_MISMATCH', 403));
   });
 
-  it('rejects categories outside the token scope', () => {
+  // 2026-09-11 起取消"令牌按栏目授权"：只要栏目在站点已启用即可发布，
+  // 不再受 principal.allowedCategories 限制（栏目是否启用由 submitArticle 校验）。
+  it('accepts any category regardless of the token scope', () => {
     expect(() =>
       assertUploadPrincipal({ ...article, category: 'medical' }, principal),
-    ).toThrow(new ArticleError('CATEGORY_FORBIDDEN', 403));
+    ).not.toThrow();
+    expect(() =>
+      assertUploadPrincipal({ ...article, category: 'cryptography' }, principal),
+    ).not.toThrow();
   });
 
   it('keeps legacy and administrator submissions compatible', () => {

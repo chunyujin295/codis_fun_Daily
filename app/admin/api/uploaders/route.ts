@@ -14,7 +14,8 @@ const schema = z.object({
     .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/),
   displayName: z.string().trim().min(1).max(80),
   tokenName: z.string().trim().min(1).max(80),
-  categories: z.array(z.string().trim().min(1).max(60)).min(1).max(20),
+  // 栏目不再按令牌授权（2026-09-11 起）：允许为空，表示"所有已启用栏目"。
+  categories: z.array(z.string().trim().min(1).max(60)).max(20).default([]),
   expiresAt: z.iso.datetime({ offset: true }).optional(),
 });
 

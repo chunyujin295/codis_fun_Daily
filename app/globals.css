@@ -1344,12 +1344,6 @@ textarea:focus-visible {
 .dark .status-published {
   color: #5eead4;
 }
-.status-archived {
-  border-color: rgb(220 51 81 / 25%);
-  background: rgb(220 51 81 / 7%);
-  color: var(--destructive);
-}
-
 .admin-form-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }

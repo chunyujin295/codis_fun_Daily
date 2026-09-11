@@ -88,14 +88,18 @@ export function issueUploadToken(input: {
 }) {
   const categories = [...new Set(input.categories)];
   const db = getDb();
-  const placeholders = categories.map(() => '?').join(', ');
-  const enabledCategories = db
-    .prepare(
-      `SELECT slug FROM categories WHERE enabled = 1 AND slug IN (${placeholders})`,
-    )
-    .all(...categories) as { slug: string }[];
-  if (enabledCategories.length !== categories.length) {
-    throw new Error('UNKNOWN_OR_DISABLED_CATEGORY');
+  // 栏目不再限制（2026-09-11 起）：categories 允许为空，表示"所有已启用栏目"。
+  // 注意空数组时不能直接拼 IN ()，会产生 SQL 语法错误。
+  if (categories.length > 0) {
+    const placeholders = categories.map(() => '?').join(', ');
+    const enabledCategories = db
+      .prepare(
+        `SELECT slug FROM categories WHERE enabled = 1 AND slug IN (${placeholders})`,
+      )
+      .all(...categories) as { slug: string }[];
+    if (enabledCategories.length !== categories.length) {
+      throw new Error('UNKNOWN_OR_DISABLED_CATEGORY');
+    }
   }
 
   if (input.expiresAt && new Date(input.expiresAt).getTime() <= Date.now()) {
