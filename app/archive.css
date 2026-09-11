@@ -1,0 +1,181 @@
+/* 文章总览页（/archive）专属样式。
+   基础 token 全部来自 globals.css，这里只写本页新增的类，避免影响首页与文章页。 */
+
+.archive-page {
+  min-height: 100svh;
+  background: var(--background);
+  color: var(--ink);
+}
+
+.archive-shell {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: clamp(1.4rem, 4vh, 2.4rem) clamp(1rem, 4vw, 2rem) 4rem;
+}
+
+.archive-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.archive-heading h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: clamp(1.4rem, 3.6vw, 1.9rem);
+  letter-spacing: -0.02em;
+}
+
+.archive-heading h1 svg {
+  width: 1.15em;
+  height: 1.15em;
+  color: var(--brand);
+}
+
+.archive-heading p {
+  margin: 0.3rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+}
+
+.archive-count {
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.archive-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1.4rem;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: var(--surface);
+  padding: 0.7rem 0.9rem;
+}
+
+.archive-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ink-muted);
+  font-size: 0.76rem;
+}
+
+.archive-field select {
+  min-height: 2.1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--surface-raised);
+  color: var(--ink);
+  padding: 0 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.archive-reset {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 0.76rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.archive-reset:hover {
+  color: var(--ink);
+}
+
+/* 流式排布：卡片按最小宽度自动铺排，不做分页。 */
+.archive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  gap: 1rem;
+}
+
+.archive-card {
+  display: grid;
+  gap: 0.5rem;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--card-color, var(--brand));
+  border-radius: 0.85rem;
+  background: var(--surface);
+  padding: 1rem 1.05rem 1.1rem;
+  color: inherit;
+  text-decoration: none;
+  box-shadow: 0 4px 12px var(--material-shadow);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.archive-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px var(--material-shadow);
+}
+
+.archive-card-category {
+  justify-self: start;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card-color, var(--brand)), transparent 86%);
+  color: var(--card-color, var(--brand));
+  padding: 0.15rem 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.archive-card strong {
+  font-size: 1.02rem;
+  line-height: 1.4;
+}
+
+.archive-card p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.archive-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.55rem;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+.archive-empty {
+  padding: 3rem 0;
+  color: var(--ink-muted);
+  font-size: 0.86rem;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .archive-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .archive-reset {
+    margin-left: 0;
+  }
+}

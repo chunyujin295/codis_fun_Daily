@@ -16,34 +16,25 @@ import type {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Settings2 } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  LayoutList,
+  Settings2,
+} from 'lucide-react';
 import { BASE_PATH } from '@/lib/constants';
+import {
+  buildTimeline,
+  dayHasCategory,
+  flattenDay,
+  type CategoryOption,
+  type TimelineApiItem,
+  type TimelineDay,
+} from '@/lib/timeline';
 
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
-
-type CategoryOption = { id: string; label: string; color: string };
-type TimelineArticle = {
-  slug: string;
-  title: string;
-  summary: string;
-  time: string;
-  uploader: string;
-  tags: string[];
-};
-type TimelineBranch = {
-  category: string;
-  label: string;
-  color: string;
-  side: 'left' | 'right';
-  articles: TimelineArticle[];
-};
-type TimelineDay = {
-  date: string;
-  label: string;
-  kicker: string;
-  branches: TimelineBranch[];
-};
 
 const initialCategories: CategoryOption[] = [
   { id: 'all', label: '全部', color: '#b65f42' },
@@ -55,7 +46,7 @@ const initialCategories: CategoryOption[] = [
 const initialDays: TimelineDay[] = [
   {
     date: '2026-09-07',
-    label: '9 月 7 日 · 星期一',
+    label: '9.7 周一',
     kicker: '今天',
     branches: [
       {
@@ -112,7 +103,7 @@ const initialDays: TimelineDay[] = [
   },
   {
     date: '2026-09-06',
-    label: '9 月 6 日 · 星期日',
+    label: '9.6 周日',
     kicker: '昨天',
     branches: [
       {
@@ -151,89 +142,12 @@ const initialDays: TimelineDay[] = [
   },
 ];
 
-type TimelineApiItem = {
-  slug: string;
-  title: string;
-  summary: string;
-  category: string;
-  categoryName: string;
-  color: string;
-  generatedAt: string;
-  contentDate: string;
-  uploaderId: string;
-  tags: string[];
-};
-
-function buildTimeline(items: TimelineApiItem[]) {
-  const dayMap = new Map<string, TimelineDay>();
-  for (const item of items) {
-    let day = dayMap.get(item.contentDate);
-    if (!day) {
-      const date = new Date(`${item.contentDate}T00:00:00+08:00`);
-      day = {
-        date: item.contentDate,
-        label: new Intl.DateTimeFormat('zh-CN', {
-          timeZone: 'Asia/Shanghai',
-          month: 'long',
-          day: 'numeric',
-          weekday: 'long',
-        }).format(date),
-        kicker: dayMap.size === 0 ? '最新' : '往日',
-        branches: [],
-      };
-      dayMap.set(item.contentDate, day);
-    }
-    let branch = day.branches.find((entry) => entry.category === item.category);
-    if (!branch) {
-      branch = {
-        category: item.category,
-        label: item.categoryName,
-        color: item.color,
-        side: day.branches.length % 2 === 0 ? 'left' : 'right',
-        articles: [],
-      };
-      day.branches.push(branch);
-    }
-    branch.articles.push({
-      slug: item.slug,
-      title: item.title,
-      summary: item.summary,
-      time: new Intl.DateTimeFormat('zh-CN', {
-        timeZone: 'Asia/Shanghai',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      }).format(new Date(item.generatedAt)),
-      uploader: item.uploaderId,
-      tags: item.tags,
-    });
-  }
-  return [...dayMap.values()];
-}
-
-function flattenTracks(days: TimelineDay[], activeCategory: string) {
-  return days.flatMap((day) =>
-    day.branches.flatMap((branch) =>
-      activeCategory === 'all' || branch.category === activeCategory
-        ? branch.articles.map((article) => ({
-            ...article,
-            id: `${day.date}-${branch.category}-${article.slug}`,
-            date: day.date,
-            dateLabel: day.label,
-            category: branch.category,
-            categoryLabel: branch.label,
-            color: branch.color,
-          }))
-        : [],
-    ),
-  );
-}
-
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [timelineDays, setTimelineDays] = useState<TimelineDay[]>(initialDays);
   const [availableCategories, setAvailableCategories] =
     useState<CategoryOption[]>(initialCategories);
+  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
   const [selectedTrackIndex, setSelectedTrackIndex] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -278,9 +192,12 @@ export default function Home() {
     return () => controller.abort();
   }, []);
 
+  /* 首页只展示「当前选中那一天」的卡片：timelineDays[0] 是最新有文章的一天。
+     日期由 controls 里的日期按钮（下拉列表）切换，见 selectDay()。 */
+  const activeDay = timelineDays[selectedDayIndex];
   const visibleTracks = useMemo(
-    () => flattenTracks(timelineDays, activeCategory),
-    [activeCategory, timelineDays],
+    () => flattenDay(activeDay, activeCategory),
+    [activeCategory, activeDay],
   );
   const activeIndex = Math.min(
     selectedTrackIndex,
@@ -330,6 +247,12 @@ export default function Home() {
 
   function moveTrack(delta: number) {
     chooseTrack(activeIndex + delta);
+  }
+
+  /* 从日期下拉直接跳到某一天（timelineDays 只含「有文章」的日期）。 */
+  function selectDay(index: number) {
+    setSelectedDayIndex(index);
+    setSelectedTrackIndex(0);
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
@@ -395,9 +318,15 @@ export default function Home() {
     }
   }
 
+  /* 切栏目时：若当前日期没有该栏目的文章，就跳到最近一个有内容的日期，别直接落在空态。 */
   function chooseCategory(categoryId: string) {
     setActiveCategory(categoryId);
     setSelectedTrackIndex(0);
+    if (!activeDay || dayHasCategory(activeDay, categoryId)) return;
+    const target = timelineDays.findIndex((day) =>
+      dayHasCategory(day, categoryId),
+    );
+    if (target >= 0) setSelectedDayIndex(target);
   }
 
   const pageStyle = {
@@ -453,6 +382,10 @@ export default function Home() {
             );
           })}
         </nav>
+        <Link className="overview-link" href="/archive">
+          <LayoutList aria-hidden="true" />
+          文章总览
+        </Link>
       </div>
 
       <section id="timeline" className="coverflow-section" aria-label="文章">
@@ -525,7 +458,7 @@ export default function Home() {
               })}
             </button>
 
-            <div className="coverflow-controls" aria-label="切换文章">
+            <div className="coverflow-controls" aria-label="切换日期与文章">
               <button
                 type="button"
                 onClick={() => moveTrack(-1)}
@@ -534,15 +467,23 @@ export default function Home() {
               >
                 <ChevronLeft aria-hidden="true" />
               </button>
-              <span
-                className="kinetic-widget"
-                key={activeTrack.id}
-                aria-hidden="true"
-              >
-                <i />
-                <i />
-                <i />
-              </span>
+
+              <div className="coverflow-day-wrap">
+                <select
+                  className="coverflow-day"
+                  aria-label="选择日期"
+                  value={selectedDayIndex}
+                  onChange={(event) => selectDay(Number(event.target.value))}
+                >
+                  {timelineDays.map((day, index) => (
+                    <option key={day.date} value={index}>
+                      {day.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="day-caret" aria-hidden="true" />
+              </div>
+
               <button
                 type="button"
                 onClick={() => moveTrack(1)}

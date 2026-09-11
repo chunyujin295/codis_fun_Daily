@@ -177,30 +177,65 @@ body {
   position: sticky;
   top: 68px;
   z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   border: 0;
   border-bottom: 1px solid var(--line);
   background: var(--surface-glass);
-  padding: 0;
+  padding: 0.45rem 1.25rem;
   backdrop-filter: blur(16px);
 }
 
 .category-filter {
   position: static;
   display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
   gap: clamp(0.35rem, 1.5vw, 1rem);
   align-items: center;
-  width: min(1380px, 100%);
+  width: auto;
   max-width: 1380px;
-  margin: 0 auto;
+  margin: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
-  padding: 0.45rem 1.25rem;
+  padding: 0;
   box-shadow: none;
   overflow-x: auto;
-  background: transparent;
   backdrop-filter: none;
   scrollbar-width: none;
+}
+
+/* 「文章总览」入口：常驻栏目行最右侧（栏目多到横向滚动时它也不会被滚走）。 */
+.overview-link {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.32rem;
+  min-height: 2.3rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  padding: 0.3rem 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    color 180ms ease,
+    background 180ms ease;
+}
+
+.overview-link:hover {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+.overview-link svg {
+  width: 0.9rem;
+  height: 0.9rem;
 }
 
 .category-filter::-webkit-scrollbar {
@@ -631,9 +666,9 @@ body {
 .coverflow-controls {
   position: relative;
   z-index: 4;
-  display: grid;
-  grid-template-columns: 2.6rem 4.6rem 2.6rem;
-  gap: 0.65rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   align-items: center;
   justify-content: center;
   margin: 0.35rem auto 0;
@@ -674,83 +709,55 @@ body {
   width: 1rem;
 }
 
-.kinetic-widget {
-  display: flex;
-  min-width: 4.6rem;
-  min-height: 2.6rem;
+/* 日期：一个伪装成胶囊的原生 <select>。
+   用原生下拉可以白拿键盘操作与移动端原生选择器，也不必自己处理
+   「点外部关闭 / 被卡片盖住 / 被区块 overflow 裁掉」这三件事。
+   原来的「上一天/下一天」胶囊按钮与中间那根加载动画条都已移除。 */
+.coverflow-day-wrap {
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.22rem;
 }
 
-.kinetic-widget i {
-  display: block;
-  width: 0.58rem;
-  height: 0.58rem;
-  border-radius: 50%;
-  background: var(--active-color);
-  box-shadow:
-    inset 0.08rem 0.08rem 0.12rem rgb(255 255 255 / 28%),
-    inset -0.08rem -0.08rem 0.12rem rgb(0 0 0 / 18%),
-    0 0.18rem 0.3rem var(--material-shadow);
+.coverflow-day {
+  appearance: none;
+  /* 宽度不贴内容：给足左右留白、文本居中；外圈描边取当前选中卡片的颜色（--active-color）。 */
+  min-width: 8.75rem;
+  min-height: 2.6rem;
+  border: 2px solid var(--active-color, var(--line));
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0 1.9rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    border-color 320ms ease;
 }
 
-.kinetic-widget i:first-child {
-  transform-origin: 130% -180%;
-  animation: bead-left 720ms cubic-bezier(0.22, 0.78, 0.28, 1);
+.coverflow-day:hover {
+  background: var(--surface-subtle);
 }
 
-.kinetic-widget i:nth-child(2) {
-  animation: bead-center 720ms cubic-bezier(0.22, 0.78, 0.28, 1);
+.coverflow-day option {
+  background: var(--surface);
+  color: var(--ink);
 }
 
-.kinetic-widget i:last-child {
-  transform-origin: -30% -180%;
-  animation: bead-right 720ms 120ms cubic-bezier(0.22, 0.78, 0.28, 1);
-}
-
-@keyframes bead-left {
-  0% {
-    transform: rotate(0);
-  }
-
-  34% {
-    transform: rotate(36deg);
-  }
-
-  68% {
-    transform: rotate(0);
-  }
-}
-
-@keyframes bead-center {
-  0%,
-  30% {
-    transform: scale(0.82);
-  }
-
-  54% {
-    transform: scale(1.18);
-  }
-
-  100% {
-    transform: scale(1);
-  }
-}
-
-@keyframes bead-right {
-  0%,
-  30% {
-    transform: rotate(0);
-  }
-
-  66% {
-    transform: rotate(-36deg);
-  }
-
-  100% {
-    transform: rotate(0);
-  }
+/* appearance:none 之后原生箭头没了，这里自绘一个。 */
+.day-caret {
+  position: absolute;
+  right: 0.72rem;
+  width: 0.85rem;
+  height: 0.85rem;
+  color: var(--ink-muted);
+  pointer-events: none;
 }
 
 .coverflow-progress {
@@ -897,6 +904,13 @@ body {
     --shift: calc(48% + (var(--distance, 1) - 1) * 12%);
   }
 
+  /* 窄屏：日期胶囊收紧，但左右仍留对称呼吸。 */
+  .coverflow-day {
+    min-width: 7.75rem;
+    padding: 0 1.6rem;
+    font-size: 0.7rem;
+  }
+
   .coverflow-caption {
     grid-template-columns: 1fr;
     padding-inline: 0.5rem;
@@ -917,12 +931,12 @@ body {
     font-size: 0.75rem;
   }
 
-  .category-filter {
-    padding-inline: 1rem;
+  .filter-shell {
+    padding-inline: 0.75rem;
   }
 
   .coverflow-controls {
-    grid-template-columns: 2.4rem 4.2rem 2.4rem;
+    gap: 0.35rem;
   }
 
   .coverflow-controls > button {
