@@ -212,7 +212,7 @@ Content-Type: audio/mpeg
 
 6. 在项目根目录执行推送命令：
    npm run publish -- ./work/submissions/<文章名>.html
-7. **（推荐）生成并上传朗读音频**：把正文改写成口语化播报稿，合成 MP3 后上传：
+7. **（强烈推荐，若大模型支持生成，则需要生成）生成并上传朗读音频**：把正文改写成口语化播报稿，合成 MP3 后上传：
    curl -X POST "<站点地址>/api/v1/articles/<externalId>/audio" \
      -H "Authorization: Bearer $DAILY_UPLOAD_TOKEN" \
      -H "Content-Type: audio/mpeg" \
