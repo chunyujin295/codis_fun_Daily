@@ -11,20 +11,21 @@
        */
       :root {
         color-scheme: light dark;
-        --color-background: #f4f6fb;
-        --color-foreground: #172033;
-        --color-primary: #4f46e5;
-        --color-accent: #0891b2;
-        --color-muted: #7b8496;
-        --color-border: rgb(55 65 81 / 13%);
-        --color-card: #ffffff;
-        --color-soft: #eef1f7;
-        --color-code-bg: #111827;
-        --color-code: #e5e7eb;
+        --color-background: #efeee8;
+        --color-foreground: #292821;
+        --color-primary: #a95439;
+        --color-accent: #52718a;
+        --color-muted: #77746a;
+        --color-border: rgb(41 40 33 / 16%);
+        --color-card: #f7f5ee;
+        --color-soft: #e6e3da;
+        --color-code-bg: #191815;
+        --color-code: #e8e4d9;
         --font-sans:
           'Noto Sans SC', 'Microsoft YaHei UI', 'PingFang SC', system-ui,
           sans-serif;
-        --font-heading: 'Noto Serif SC', 'Source Han Serif SC', STSong, serif;
+        --font-heading:
+          'Noto Serif SC', 'Source Han Serif SC', STSong, 'Songti SC', serif;
         --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
       }
 
@@ -35,30 +36,24 @@
         font-family: var(--font-sans);
         font-size: 16px;
         line-height: 1.6;
-        background-image:
-          radial-gradient(
-            circle at 8% -8%,
-            rgb(79 70 229 / 10%),
-            transparent 31rem
-          ),
-          linear-gradient(rgb(55 65 81 / 5%) 1px, transparent 1px),
-          linear-gradient(90deg, rgb(55 65 81 / 5%) 1px, transparent 1px);
-        background-size:
-          auto,
-          72px 72px,
-          72px 72px;
+        background-image: radial-gradient(
+          circle,
+          rgb(41 40 33 / 5%) 0.55px,
+          transparent 0.7px
+        );
+        background-size: 5px 5px;
       }
 
       @media (prefers-color-scheme: dark) {
         :root {
-          --color-background: #0b1020;
-          --color-foreground: #eef2ff;
-          --color-primary: #9b9cff;
-          --color-accent: #55d8e8;
-          --color-muted: #8994a9;
-          --color-border: rgb(207 215 255 / 13%);
-          --color-card: #121a2d;
-          --color-soft: #182136;
+          --color-background: #171612;
+          --color-foreground: #e8e4d9;
+          --color-primary: #d17a5d;
+          --color-accent: #7f9eae;
+          --color-muted: #969287;
+          --color-border: rgb(232 228 217 / 16%);
+          --color-card: #211f1a;
+          --color-soft: #2c2922;
         }
       }
 
@@ -129,11 +124,12 @@
         border: 1px solid
           color-mix(in srgb, var(--color-primary), transparent 78%);
         border-left: 4px solid var(--color-primary);
-        border-radius: 0.25rem 0.95rem 0.95rem 0.25rem;
+        border-radius: 0;
         background: color-mix(in srgb, var(--color-primary), transparent 92%);
         color: var(--color-foreground);
         padding: 1rem 1.2rem;
         margin: 1.25rem 0;
+        box-shadow: none;
       }
 
       .article-content blockquote p {
@@ -142,7 +138,7 @@
 
       /* ===== 代码 ===== */
       .article-content code {
-        border-radius: 0.35rem;
+        border-radius: 0;
         border: 1px solid var(--color-border);
         background: var(--color-soft);
         padding: 0.12rem 0.35rem;
@@ -153,11 +149,12 @@
       .article-content pre {
         overflow-x: auto;
         border: 1px solid var(--color-border);
-        border-radius: 1rem;
+        border-radius: 0;
         background: var(--color-code-bg);
         color: var(--color-code);
         padding: 1.15rem;
         margin: 1.25rem 0;
+        box-shadow: none;
       }
 
       .article-content pre code {
@@ -180,8 +177,8 @@
       .article-content img {
         max-width: 100%;
         height: auto;
-        border-radius: 1rem;
-        box-shadow: 0 24px 70px rgb(30 41 59 / 12%);
+        border-radius: 0;
+        box-shadow: none;
       }
 
       /* ===== 表格 ===== */
@@ -191,7 +188,8 @@
         border-collapse: separate;
         border-spacing: 0;
         border: 1px solid var(--color-border);
-        border-radius: 0.9rem;
+        border-radius: 0;
+        box-shadow: none;
         margin: 1.25rem 0;
       }
 

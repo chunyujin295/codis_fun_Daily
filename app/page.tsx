@@ -1,19 +1,19 @@
 'use client';
 
-import type { CSSProperties } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import type {
+  CSSProperties,
+  KeyboardEvent,
+  MouseEvent,
+  PointerEvent,
+} from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  CalendarDays,
-  ChevronRight,
-  Clock3,
-  Settings2,
-  Volume2,
-} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight, Settings2 } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { Button } from '@/components/ui/button';
 
 type CategoryOption = { id: string; label: string; color: string };
 type TimelineArticle = {
@@ -39,10 +39,10 @@ type TimelineDay = {
 };
 
 const initialCategories: CategoryOption[] = [
-  { id: 'all', label: '全部', color: '#d9f99d' },
-  { id: 'technology', label: '科技新闻', color: '#73fbd3' },
-  { id: 'medical', label: '医疗', color: '#ff9db0' },
-  { id: 'cryptography', label: '密码学', color: '#a78bfa' },
+  { id: 'all', label: '全部', color: '#b65f42' },
+  { id: 'technology', label: '科技新闻', color: '#52718a' },
+  { id: 'medical', label: '医疗', color: '#a75d65' },
+  { id: 'cryptography', label: '密码学', color: '#756a91' },
 ];
 
 const initialDays: TimelineDay[] = [
@@ -54,7 +54,7 @@ const initialDays: TimelineDay[] = [
       {
         category: 'technology',
         label: '科技新闻',
-        color: '#73fbd3',
+        color: '#52718a',
         side: 'left',
         articles: [
           {
@@ -71,7 +71,7 @@ const initialDays: TimelineDay[] = [
       {
         category: 'medical',
         label: '医疗',
-        color: '#ff9db0',
+        color: '#a75d65',
         side: 'right',
         articles: [
           {
@@ -87,7 +87,7 @@ const initialDays: TimelineDay[] = [
       {
         category: 'cryptography',
         label: '密码学',
-        color: '#a78bfa',
+        color: '#756a91',
         side: 'left',
         articles: [
           {
@@ -111,7 +111,7 @@ const initialDays: TimelineDay[] = [
       {
         category: 'technology',
         label: '科技新闻',
-        color: '#73fbd3',
+        color: '#52718a',
         side: 'right',
         articles: [
           {
@@ -127,7 +127,7 @@ const initialDays: TimelineDay[] = [
       {
         category: 'cryptography',
         label: '密码学',
-        color: '#a78bfa',
+        color: '#756a91',
         side: 'left',
         articles: [
           {
@@ -204,11 +204,37 @@ function buildTimeline(items: TimelineApiItem[]) {
   return [...dayMap.values()];
 }
 
+function flattenTracks(days: TimelineDay[], activeCategory: string) {
+  return days.flatMap((day) =>
+    day.branches.flatMap((branch) =>
+      activeCategory === 'all' || branch.category === activeCategory
+        ? branch.articles.map((article) => ({
+            ...article,
+            id: `${day.date}-${branch.category}-${article.slug}`,
+            date: day.date,
+            dateLabel: day.label,
+            category: branch.category,
+            categoryLabel: branch.label,
+            color: branch.color,
+          }))
+        : [],
+    ),
+  );
+}
+
 export default function Home() {
+  const router = useRouter();
   const [activeCategory, setActiveCategory] = useState('all');
   const [timelineDays, setTimelineDays] = useState<TimelineDay[]>(initialDays);
   const [availableCategories, setAvailableCategories] =
     useState<CategoryOption[]>(initialCategories);
+  const [selectedTrackIndex, setSelectedTrackIndex] = useState(0);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const lastWheelAt = useRef(0);
+  const coverFlowStageRef = useRef<HTMLButtonElement | null>(null);
+  const dragStartX = useRef<number | null>(null);
+  const dragged = useRef(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -246,24 +272,135 @@ export default function Home() {
     return () => controller.abort();
   }, []);
 
-  const visibleDays = useMemo(
-    () =>
-      timelineDays
-        .map((day) => ({
-          ...day,
-          branches: day.branches.filter(
-            (branch) =>
-              activeCategory === 'all' || branch.category === activeCategory,
-          ),
-        }))
-        .filter((day) => day.branches.length > 0),
+  const visibleTracks = useMemo(
+    () => flattenTracks(timelineDays, activeCategory),
     [activeCategory, timelineDays],
   );
+  const activeIndex = Math.min(
+    selectedTrackIndex,
+    Math.max(visibleTracks.length - 1, 0),
+  );
+  const activeTrack = visibleTracks[activeIndex];
+
+  useEffect(() => {
+    const stage = coverFlowStageRef.current;
+    if (!stage || visibleTracks.length === 0) return;
+
+    function handleStageWheel(event: globalThis.WheelEvent) {
+      const horizontal = Math.abs(event.deltaX) > Math.abs(event.deltaY);
+      const movement = horizontal ? event.deltaX : event.deltaY;
+      if (Math.abs(movement) < 2) return;
+
+      const direction = movement > 0 ? 1 : -1;
+      const atBoundary =
+        (direction < 0 && activeIndex === 0) ||
+        (direction > 0 && activeIndex === visibleTracks.length - 1);
+
+      if (!horizontal && atBoundary) {
+        lastWheelAt.current = 0;
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const now = performance.now();
+      if (now - lastWheelAt.current < 360) return;
+      lastWheelAt.current = now;
+      setSelectedTrackIndex((current) =>
+        Math.max(0, Math.min(current + direction, visibleTracks.length - 1)),
+      );
+    }
+
+    stage.addEventListener('wheel', handleStageWheel, { passive: false });
+    return () => stage.removeEventListener('wheel', handleStageWheel);
+  }, [activeIndex, visibleTracks.length]);
+
+  function chooseTrack(index: number) {
+    setSelectedTrackIndex(
+      Math.max(0, Math.min(index, visibleTracks.length - 1)),
+    );
+  }
+
+  function moveTrack(delta: number) {
+    chooseTrack(activeIndex + delta);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveTrack(1);
+    }
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveTrack(-1);
+    }
+    if (event.key === 'Home') {
+      event.preventDefault();
+      chooseTrack(0);
+    }
+    if (event.key === 'End') {
+      event.preventDefault();
+      chooseTrack(visibleTracks.length - 1);
+    }
+  }
+
+  function handlePointerDown(event: PointerEvent<HTMLButtonElement>) {
+    dragStartX.current = event.clientX;
+    dragged.current = false;
+    setIsDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLButtonElement>) {
+    if (dragStartX.current === null) return;
+    const movement = event.clientX - dragStartX.current;
+    setDragOffset(Math.max(-180, Math.min(180, movement)));
+  }
+
+  function handlePointerUp(event: PointerEvent<HTMLButtonElement>) {
+    if (dragStartX.current === null) return;
+    const movement = event.clientX - dragStartX.current;
+    dragStartX.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    setIsDragging(false);
+    setDragOffset(0);
+    if (Math.abs(movement) < 42) return;
+    dragged.current = true;
+    moveTrack(movement > 0 ? -1 : 1);
+  }
+
+  function handleStageClick(event: MouseEvent<HTMLButtonElement>) {
+    if (dragged.current) {
+      dragged.current = false;
+      return;
+    }
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const position = event.clientX - bounds.left;
+    if (position < bounds.width * 0.38) moveTrack(-1);
+    if (position > bounds.width * 0.62) moveTrack(1);
+    if (
+      position >= bounds.width * 0.38 &&
+      position <= bounds.width * 0.62 &&
+      activeTrack
+    ) {
+      router.push(`/articles/${activeTrack.slug}`);
+    }
+  }
+
+  function chooseCategory(categoryId: string) {
+    setActiveCategory(categoryId);
+    setSelectedTrackIndex(0);
+  }
+
+  const pageStyle = {
+    '--active-color': activeTrack?.color ?? '#b65f42',
+  } as CSSProperties;
 
   return (
-    <main className="site-shell">
+    <main className="site-shell" style={pageStyle}>
       <a className="skip-link" href="#timeline">
-        跳到文章列表
+        跳到文章
       </a>
 
       <header className="site-header">
@@ -275,16 +412,8 @@ export default function Home() {
             width={18}
             height={18}
           />
-          <span>
-            <strong>Daily Knowledge</strong>
-            <small>知识索引</small>
-          </span>
+          <strong>Daily Knowledge</strong>
         </Link>
-
-        <div className="header-status" aria-label="站点状态">
-          <span className="status-dot" />
-          {timelineDays[0]?.branches.length ?? 0} 个栏目已更新
-        </div>
 
         <div className="header-actions">
           <ThemeToggle />
@@ -295,106 +424,151 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="timeline-intro" aria-labelledby="timeline-title">
-        <div>
-          <p className="eyebrow">{timelineDays[0]?.date ?? '每日更新'}</p>
-          <h1 id="timeline-title">每日更新</h1>
-        </div>
-        <p className="intro-copy">按日期浏览文章，也可以选择栏目筛选。</p>
+      <section className="editorial-hero" aria-labelledby="timeline-title">
+        <h1 id="timeline-title">
+          <span>每日</span>
+          <span>更新</span>
+        </h1>
       </section>
 
-      <nav className="category-filter" aria-label="栏目筛选">
-        {availableCategories.map((category) => {
-          const active = activeCategory === category.id;
-          return (
-            <Button
-              key={category.id}
+      <div className="filter-shell">
+        <nav className="category-filter" aria-label="栏目筛选">
+          {availableCategories.map((category) => {
+            const active = activeCategory === category.id;
+            return (
+              <Button
+                key={category.id}
+                type="button"
+                variant="ghost"
+                aria-pressed={active}
+                onClick={() => chooseCategory(category.id)}
+                className="category-chip"
+                style={{ '--chip-color': category.color } as CSSProperties}
+              >
+                <span className="chip-dot" aria-hidden="true" />
+                {category.label}
+              </Button>
+            );
+          })}
+        </nav>
+      </div>
+
+      <section id="timeline" className="coverflow-section" aria-label="文章">
+        {activeTrack ? (
+          <>
+            <button
+              ref={coverFlowStageRef}
               type="button"
-              variant={active ? 'default' : 'outline'}
-              aria-pressed={active}
-              onClick={() => setActiveCategory(category.id)}
-              className="category-chip"
-              style={{ '--chip-color': category.color } as CSSProperties}
+              className={`coverflow-stage ${isDragging ? 'is-dragging' : ''}`}
+              style={
+                {
+                  '--drag-offset': `${dragOffset}px`,
+                } as CSSProperties
+              }
+              onClick={handleStageClick}
+              onKeyDown={handleKeyDown}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={() => {
+                dragStartX.current = null;
+                setIsDragging(false);
+                setDragOffset(0);
+              }}
+              aria-label={`当前为第 ${activeIndex + 1} 篇：${activeTrack.title}。使用左右方向键切换。`}
             >
-              <span className="chip-dot" aria-hidden="true" />
-              {category.label}
-            </Button>
-          );
-        })}
-        <span className="filter-date">
-          <CalendarDays size={16} aria-hidden="true" />
-          北京时间
-        </span>
-      </nav>
+              <span className="coverflow-floor" aria-hidden="true" />
+              {visibleTracks.map((track, index) => {
+                const offset = index - activeIndex;
+                const distance = Math.abs(offset);
+                const side =
+                  offset === 0
+                    ? 'is-active'
+                    : offset < 0
+                      ? 'is-left'
+                      : 'is-right';
+                const hidden = distance > 3 ? 'is-hidden' : '';
+                const visibleDistance = Math.min(distance, 4);
+                return (
+                  <span
+                    className={`cover-card ${side} ${hidden}`}
+                    key={track.id}
+                    style={
+                      {
+                        '--distance': visibleDistance,
+                        '--shift': `${visibleDistance === 0 ? 0 : 300 + (visibleDistance - 1) * 116}px`,
+                        '--shift-mobile': `${visibleDistance === 0 ? 0 : 122 + (visibleDistance - 1) * 44}px`,
+                        '--cover-scale': Math.max(
+                          0.66,
+                          0.9 - visibleDistance * 0.075,
+                        ),
+                        '--cover-color': track.color,
+                        zIndex: visibleTracks.length - distance,
+                      } as CSSProperties
+                    }
+                    aria-hidden={offset !== 0}
+                  >
+                    <span className="cover-paper">
+                      <span className="cover-topline">
+                        <span>{String(index + 1).padStart(2, '0')}</span>
+                        <span>{track.categoryLabel}</span>
+                      </span>
+                      <span className="cover-copy">
+                        <strong>{track.title}</strong>
+                        <span className="cover-summary">{track.summary}</span>
+                      </span>
+                      <span className="cover-rule" />
+                      <span className="cover-bottomline">
+                        <span>{track.date}</span>
+                        <span>{track.uploader}</span>
+                      </span>
+                    </span>
+                    <span className="cover-reflection" aria-hidden="true" />
+                  </span>
+                );
+              })}
+            </button>
 
-      <ol id="timeline" className="timeline-tree" aria-label="文章时间线">
-        {visibleDays.map((day) => (
-          <li key={day.date} className="timeline-day">
-            <div className="date-node">
-              <span>{day.kicker}</span>
-              <time dateTime={day.date}>{day.label}</time>
-              <small>
-                {day.branches.reduce(
-                  (count, branch) => count + branch.articles.length,
-                  0,
-                )}{' '}
-                篇
-              </small>
+            <div className="coverflow-controls" aria-label="切换文章">
+              <button
+                type="button"
+                onClick={() => moveTrack(-1)}
+                disabled={activeIndex === 0}
+                aria-label="上一篇"
+              >
+                <ChevronLeft aria-hidden="true" />
+              </button>
+              <span
+                className="kinetic-widget"
+                key={activeTrack.id}
+                aria-hidden="true"
+              >
+                <i />
+                <i />
+                <i />
+              </span>
+              <button
+                type="button"
+                onClick={() => moveTrack(1)}
+                disabled={activeIndex === visibleTracks.length - 1}
+                aria-label="下一篇"
+              >
+                <ChevronRight aria-hidden="true" />
+              </button>
             </div>
 
-            <div className="branch-list">
-              {day.branches.map((branch) => (
-                <section
-                  key={`${day.date}-${branch.category}`}
-                  className={`timeline-branch branch-${branch.side}`}
-                  style={{ '--branch-color': branch.color } as CSSProperties}
-                  aria-labelledby={`${day.date}-${branch.category}`}
-                >
-                  <h2 id={`${day.date}-${branch.category}`}>
-                    <span aria-hidden="true" />
-                    {branch.label}
-                  </h2>
-                  {branch.articles.map((article) => (
-                    <article className="article-leaf" key={article.slug}>
-                      <div className="leaf-meta">
-                        <span>
-                          <Clock3 size={14} aria-hidden="true" />
-                          {article.time}
-                        </span>
-                        <span>{article.uploader}</span>
-                      </div>
-                      <h3>{article.title}</h3>
-                      <p>{article.summary}</p>
-                      <div className="leaf-footer">
-                        <div className="tag-list" aria-label="文章标签">
-                          {article.tags.map((tag) => (
-                            <span key={tag}>{tag}</span>
-                          ))}
-                        </div>
-                        <Link
-                          className="read-link"
-                          href={`/articles/${article.slug}`}
-                        >
-                          查看
-                          <ChevronRight size={16} aria-hidden="true" />
-                        </Link>
-                      </div>
-                      <div className="audio-hint" aria-label="朗读状态：生成中">
-                        <Volume2 size={15} aria-hidden="true" />
-                        音频生成中
-                      </div>
-                    </article>
-                  ))}
-                </section>
-              ))}
-            </div>
-          </li>
-        ))}
-      </ol>
-
-      <footer className="site-footer">
-        <span>已显示全部文章</span>
-      </footer>
+            <span className="sr-only" aria-live="polite">
+              {activeTrack.title}
+            </span>
+          </>
+        ) : (
+          <div className="timeline-empty">
+            <button type="button" onClick={() => chooseCategory('all')}>
+              查看全部
+            </button>
+          </div>
+        )}
+      </section>
     </main>
   );
 }

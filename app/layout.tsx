@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 
 import './globals.css';
+import './coverflow.css';
+import './signature.css';
 
 import { AudioPlayerProvider } from '@/components/audio-player-provider';
 

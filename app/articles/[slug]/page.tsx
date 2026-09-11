@@ -22,7 +22,7 @@ export default async function ArticlePage({
     <main className="article-page">
       <header className="article-topbar">
         <Link href="/" className="back-link">
-          <ArrowLeft /> 返回时间树
+          <ArrowLeft /> 返回首页
         </Link>
         <div className="article-topbar-actions">
           <span className="article-brand">
