@@ -466,15 +466,17 @@ body {
     );
 }
 
+/* 侧卡（3D 旋转的卡片）不画倒影。
+   原因：-webkit-box-reflect 遇到 3D 旋转会把倒影画高约 20~30px，叠在卡片背面 ——
+   实测 390×844 下 d2（转角 72°）倒影 y 480→530，而几何正确位置应是 499→559；
+   同一页面未旋转的中间卡倒影 y 524→639 则完全正确。
+   这是 Chromium 对该非标准属性与 3D 变换组合的实现缺陷，调参数修不了，
+   所以侧卡用"全透明遮罩"关掉倒影（注意 -webkit-box-reflect: none 不是合法值，
+   设了会被浏览器忽略，不能用 none 来关）。
+   侧卡本身转角很陡、被透视压得很窄，倒影本就几乎看不见，去掉后反而更干净。 */
 .cover-card:not(.is-active) .cover-paper {
   -webkit-box-reflect: below 7px
-    linear-gradient(
-      to bottom,
-      rgb(0 0 0 / 0%) 0%,
-      rgb(0 0 0 / 0%) 66%,
-      rgb(0 0 0 / 20%) 84%,
-      rgb(0 0 0 / 42%) 100%
-    );
+    linear-gradient(rgba(0 0 0 / 0%), rgba(0 0 0 / 0%));
 }
 
 .dark .cover-paper {
@@ -493,13 +495,7 @@ body {
 
 .dark .cover-card:not(.is-active) .cover-paper {
   -webkit-box-reflect: below 7px
-    linear-gradient(
-      to bottom,
-      rgb(0 0 0 / 0%) 0%,
-      rgb(0 0 0 / 0%) 64%,
-      rgb(0 0 0 / 26%) 84%,
-      rgb(0 0 0 / 50%) 100%
-    );
+    linear-gradient(rgba(0 0 0 / 0%), rgba(0 0 0 / 0%));
 }
 
 .cover-paper::before {

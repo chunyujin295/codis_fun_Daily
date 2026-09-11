@@ -175,6 +175,33 @@ Firefox 不支持该属性。
 > 倒影高度 = 元素高度，会吃掉版面高度。侧卡因为被透视放大会更高，其倒影会落到区块裁切线以下 ——
 > 也就是说**只有中间卡片看得到倒影**，这是当前一屏约束下的既定取舍，不是 bug。
 
+### ⚠️ 侧卡（3D 旋转的卡片）不能画倒影
+
+**`-webkit-box-reflect` 遇到 3D 旋转会把倒影画高 20~30px，叠在卡片背面**。实测（390×844）：
+
+| 卡片 | 转角 | 倒影实测 | 几何正确位置 | 结论 |
+|---|---|---|---|---|
+| 中间卡 | 0° | y 524→639 | 525→647 | ✅ 正确 |
+| d2 侧卡 | 72° | y 480→530 | 499→559 | ❌ 整体高出 ~20px，叠在卡片背面 |
+
+所以侧卡（`.cover-card:not(.is-active) .cover-paper`，含 `.dark` 变体）用**全透明遮罩**关掉倒影：
+
+```css
+.cover-card:not(.is-active) .cover-paper {
+  -webkit-box-reflect: below 7px linear-gradient(rgba(0 0 0 / 0%), rgba(0 0 0 / 0%));
+}
+```
+
+**两个坑**：
+- **不能用 `-webkit-box-reflect: none` 来关** —— `none` 不是合法值，声明会被浏览器直接忽略
+  （设完读回计算样式仍是原值，看起来像"没生效"），必须用全透明遮罩。
+- 这是 Chromium 对该非标准属性与 3D 变换组合的实现缺陷，**调参数修不了**。
+  侧卡转角陡、被透视压得很窄，倒影本就几乎看不见，去掉后反而更干净。
+
+**怎么验证倒影画对了**（肉眼很难判断）：截两张图 —— 一张正常、一张把所有
+`.cover-paper` 的 `-webkit-box-reflect` 设成全透明遮罩 —— 逐行做像素差分，
+就能精确量出倒影画在哪些行、强度多少（项目里有 `sharp`，可直接用）。
+
 ## 8. 卡片内的字号
 
 `.cover-card` 上有 `container-type: inline-size`，卡内标题用 `font-size: 10cqw`（`cqw` = 卡片宽的 1%），
@@ -246,6 +273,8 @@ card.getBoundingClientRect();          // 变换后的实际包围盒
 | 侧卡比中间卡片还高 | `--depth` 不够，近端跑到中间卡前面 | 让 `|--depth| > (卡宽/2)·sinθ`（规则 3） |
 | 左右不对称 | `transform-origin` 没落在舞台中心 | 改用负外边距居中布局盒子 |
 | 倒影贴卡处看不见、远处才出现 | `-webkit-box-reflect` 遮罩方向写反 | 元素底部不透明、顶部透明 |
+| 侧卡背后透出镜像文字 | 3D 旋转下 `-webkit-box-reflect` 倒影画高 20~30px | 侧卡不画倒影（全透明遮罩），只保留中间卡（§7） |
+| 想关倒影却关不掉 | `-webkit-box-reflect: none` 不是合法值，声明被忽略 | 用全透明遮罩 `linear-gradient(rgba(0 0 0/0%),rgba(0 0 0/0%))` |
 | 页面出现滚动条 / 倒影被切 | `.coverflow-section` 被压缩 | `flex: 1 0 auto`（不能只写 `1`） |
 | 改了样式"没生效" | 项目是 `globals.css` + `coverflow.css` 双层样式表 | 先 grep 另一个文件，用 `getComputedStyle` 读实际值 |
 | 换了 `--turn` 后侧卡位置怪 | 投影镜像导致 bbox 外移 | 同步回调 `--shift`（§5） |
