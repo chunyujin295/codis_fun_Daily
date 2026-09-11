@@ -147,6 +147,26 @@ wc -c < work/submissions/<文章名>.html        # 必须 ≤ 10485760（建议 
 
 **流程**：先上传文章（见上）→ 生成口播 MP3 → 上传音频。音频挂在文章的当前版本上。
 
+**推荐工具**：edge-tts（无需 API Key，直接调用微软 Edge 的在线语音合成）。
+建议参数：`--voice zh-CN-YunyangNeural --rate "+8%"`（云扬男声，语速 +8% 更适合口播节奏）：
+
+```bash
+edge-tts --voice zh-CN-YunyangNeural --rate "+8%" \
+  --file work/submissions/<文章名>-口播稿.txt \
+  --write-media work/submissions/<文章名>.mp3
+```
+
+**更省事的办法**：智能体工作副本自带 `gen-audio.py`（内部就是 edge-tts、默认参数即
+`zh-CN-YunyangNeural / +8%`，并会用 ffmpeg 把输出转成站点更兼容的 MPEG-1 44.1kHz 单声道）：
+
+```bash
+python gen-audio.py work/submissions/<文章名>-口播稿.txt work/submissions/<文章名>.mp3
+```
+
+> ⚠️ 直接用 edge-tts CLI 时注意：它的原始输出是 MPEG-2 Layer III（24kHz），
+> 站点校验可能报 415 `AUDIO_FORMAT_NOT_SUPPORTED`。遇到就用 ffmpeg 转码：
+> `ffmpeg -y -i in.mp3 -codec:a libmp3lame -ar 44100 -ac 1 -b:a 64k -id3v2_version 3 out.mp3`
+
 ```http
 POST /Daily/api/v1/articles/{externalId}/audio
 Authorization: Bearer <你的令牌>
@@ -215,7 +235,11 @@ Content-Type: audio/mpeg
 
 6. 在项目根目录执行推送命令：
    npm run publish -- ./work/submissions/<文章名>.html
-7. **（若大模型支持生成口播，或可以借助工具生成，则一定要生成；否则不需要生成）生成并上传朗读音频**：把正文改写成口语化播报稿，合成 MP3 后上传：
+7. **（若大模型支持生成口播，或可以借助工具生成，则一定要生成；否则不需要生成）生成并上传朗读音频**：把正文改写成口语化播报稿，合成 MP3 后上传。
+   合成推荐 edge-tts，建议参数 `--voice zh-CN-YunyangNeural --rate "+8%"`（云扬男声，语速 +8%）。优先用工作副本自带的
+   `gen-audio.py`（默认参数就是上面这套，并已处理格式转码）：`python gen-audio.py 口播稿.txt ./work/submissions/<文章名>.mp3`；
+   没有该脚本就直接用 CLI：`edge-tts --voice zh-CN-YunyangNeural --rate "+8%" --file 口播稿.txt --write-media ./work/submissions/<文章名>.mp3`
+   （若站点报 415，是 edge-tts 原始输出的 MPEG-2 格式不被接受，用 ffmpeg 转成 MPEG-1 44.1kHz 后再传。）然后上传：
    curl -X POST "<站点地址>/api/v1/articles/<externalId>/audio" \
      -H "Authorization: Bearer $DAILY_UPLOAD_TOKEN" \
      -H "Content-Type: audio/mpeg" \
