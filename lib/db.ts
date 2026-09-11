@@ -215,6 +215,44 @@ function createDatabase() {
     CREATE INDEX IF NOT EXISTS idx_upload_audits_created ON upload_audits(created_at DESC);
   `);
 
+  // 老库迁移：确保 tts_jobs(article_version_id) 上有唯一约束。
+  // 音频上传接口的 ON CONFLICT(article_version_id) 依赖它；而 CREATE TABLE IF NOT EXISTS
+  // 不会给已存在的表补约束，缺约束的老库会在"同版本重复上传音频"时直接抛错 → 500 空 body。
+  // 先按版本去重（保留 audio_assets 引用的一条，否则保留最新一条，避免外键失效），再建唯一索引。
+  const hasVersionUnique = (
+    database
+      .prepare(`
+        SELECT COUNT(*) AS n
+        FROM pragma_index_list('tts_jobs') il
+        JOIN pragma_index_info(il.name) ii
+        WHERE il."unique" = 1 AND ii.name = 'article_version_id'
+      `)
+      .get() as { n: number }
+  ).n > 0;
+  if (!hasVersionUnique) {
+    const duplicates = database
+      .prepare(
+        'SELECT article_version_id AS articleVersionId FROM tts_jobs GROUP BY article_version_id HAVING COUNT(*) > 1',
+      )
+      .all() as { articleVersionId: string }[];
+    for (const { articleVersionId } of duplicates) {
+      const keep = database
+        .prepare(
+          `SELECT COALESCE(
+             (SELECT tts_job_id FROM audio_assets WHERE article_version_id = ?),
+             (SELECT id FROM tts_jobs WHERE article_version_id = ? ORDER BY updated_at DESC, id DESC LIMIT 1)
+           ) AS id`,
+        )
+        .get(articleVersionId, articleVersionId) as { id: string };
+      database
+        .prepare('DELETE FROM tts_jobs WHERE article_version_id = ? AND id != ?')
+        .run(articleVersionId, keep.id);
+    }
+    database.exec(
+      'CREATE UNIQUE INDEX IF NOT EXISTS uq_tts_jobs_article_version ON tts_jobs(article_version_id)',
+    );
+  }
+
   const now = new Date().toISOString();
   const seedCategory = database.prepare(`
     INSERT INTO categories(slug, name, color, sort_order, enabled, created_at, updated_at)
