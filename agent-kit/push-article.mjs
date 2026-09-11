@@ -85,11 +85,12 @@ if (summaryLength > 100) {
   );
 }
 
-// base64 内嵌图片会让 HTML 体积涨约 1.33 倍，而服务端只接受 2 MB 以内的 HTML。
+// base64 内嵌图片会让 HTML 体积涨约 1.33 倍，而服务端只接受 10 MB 以内的 HTML。
+// 注意：若站点前置 nginx 未调大 client_max_body_size（默认 1 MiB），>1 MiB 的请求会在到应用前被 413。
 const htmlBytes = Buffer.byteLength(html, 'utf8');
-if (htmlBytes > 2 * 1024 * 1024) {
+if (htmlBytes > 10 * 1024 * 1024) {
   throw new Error(
-    `article HTML is ${(htmlBytes / 1024 / 1024).toFixed(2)} MB (${htmlBytes} bytes); the hard limit is 2 MB (2097152 bytes) - compress the base64 images`,
+    `article HTML is ${(htmlBytes / 1024 / 1024).toFixed(2)} MB (${htmlBytes} bytes); the hard limit is 10 MB (10485760 bytes) - compress the base64 images`,
   );
 }
 
