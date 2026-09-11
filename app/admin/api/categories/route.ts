@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 
 import { auditAdmin, requireAdminRequest } from '@/lib/auth';
+import { CATEGORY_SLUG_PATTERN } from '@/lib/constants';
 import { getDb } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -12,7 +13,8 @@ const schema = z.object({
     .trim()
     .min(1)
     .max(60)
-    .regex(/^[a-z0-9][a-z0-9-]*$/),
+    // 与前端 <Input pattern> 共用同一份来源，避免两边规则漂移。
+    .regex(new RegExp(`^${CATEGORY_SLUG_PATTERN}$`)),
   name: z.string().trim().min(1).max(40),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   sortOrder: z.number().int().min(0).max(10_000),
@@ -26,7 +28,18 @@ export async function POST(request: NextRequest) {
   }
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: 'INVALID_CATEGORY' }, { status: 422 });
+    // 带上出错字段名，否则前端只能显示一个 INVALID_CATEGORY，无法定位是哪个字段不合法。
+    const fields = [
+      ...new Set(
+        parsed.error.issues
+          .map((issue) => issue.path.join('.'))
+          .filter((path) => path.length > 0),
+      ),
+    ];
+    return NextResponse.json(
+      { error: 'INVALID_CATEGORY', fields },
+      { status: 422 },
+    );
   }
   const value = parsed.data;
   const now = new Date().toISOString();

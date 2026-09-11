@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { BASE_PATH } from '@/lib/constants';
+import { BASE_PATH, CATEGORY_SLUG_PATTERN } from '@/lib/constants';
 
 type AdminArticle = {
   id: string;
@@ -156,9 +156,18 @@ export function AdminDashboard({
       });
       const body = (await response.json().catch(() => ({}))) as {
         error?: string;
+        fields?: string[];
         [key: string]: unknown;
       };
-      if (!response.ok) throw new Error(body.error ?? '操作失败');
+      if (!response.ok) {
+        const error = new Error(body.error ?? '操作失败') as Error & {
+          fields?: string[];
+        };
+        if (Array.isArray(body.fields) && body.fields.length > 0) {
+          error.fields = body.fields;
+        }
+        throw error;
+      }
       return body;
     },
     [csrfToken],
@@ -251,7 +260,21 @@ export function AdminDashboard({
       setMessage('栏目配置已保存。');
       window.setTimeout(() => window.location.reload(), 500);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : '保存失败');
+      const fields = (error as { fields?: string[] }).fields ?? [];
+      if (fields.length > 0) {
+        const labels: Record<string, string> = {
+          slug: 'Slug',
+          name: '显示名',
+          color: '颜色',
+          sortOrder: '顺序',
+          enabled: '启用状态',
+        };
+        setMessage(
+          `保存失败：${fields.map((field) => labels[field] ?? field).join('、')} 不符合要求（Slug 只能用小写字母、数字和连字符，且以字母或数字开头）。`,
+        );
+      } else {
+        setMessage(error instanceof Error ? error.message : '保存失败');
+      }
     }
   }
 
@@ -624,13 +647,24 @@ export function AdminDashboard({
               <Input
                 id="category-slug"
                 name="slug"
-                pattern="[a-z0-9][a-z0-9-]*"
+                /* 与服务端共用同一份来源（见 lib/constants.ts 的说明：
+                   连字符必须写 \-，否则 pattern 在 v 模式下编译失败会被浏览器静默忽略）。 */
+                pattern={CATEGORY_SLUG_PATTERN}
+                placeholder="小写字母数字或连字符，如 ai-news"
+                title="只能用小写字母、数字和连字符，且必须以字母或数字开头"
+                maxLength={60}
                 required
               />
             </label>
             <label htmlFor="category-name">
               显示名
-              <Input id="category-name" name="name" required />
+              <Input
+                id="category-name"
+                name="name"
+                maxLength={40}
+                placeholder="如 人工智能"
+                required
+              />
             </label>
             <label htmlFor="category-color">
               颜色
@@ -650,6 +684,7 @@ export function AdminDashboard({
                 type="number"
                 defaultValue="100"
                 min="0"
+                max="10000"
                 required
               />
             </label>
