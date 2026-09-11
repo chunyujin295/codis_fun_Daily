@@ -117,6 +117,9 @@ curl -s "https://codis.fun/Daily/api/v1/categories"
 **要求：**
 - 只包含文章正文，不包含 `<html>`、`<head>`、`<body>` 等外层标签
 - 图片应该先下载下来，然后转成 base64 内嵌到网页中（支持 HTTP/HTTPS 链接）
+- **配图优先用信息来源处自带的原图**（原文里的图表、截图、照片）
+- **尽量不要用 AI 生成配图**（非强制：来源确实没有可用配图、或原始配图不可下载 /
+  明显不合适时，才用 AI 生成或干脆不配图）
 - 参考 `examples/article-template.html` 确保样式符合网站风格
 
 **体积上限（重要，base64 内嵌图片的实际瓶颈就在这里）：**
@@ -177,7 +180,7 @@ Content-Type: audio/mpeg
 2. 在项目根目录下的 work/submissions/ 生成两个同名文件：
    - <文章名>.html
    - <文章名>.metadata.json
-3. HTML 只包含文章正文，推荐使用 article、标题、段落、列表、引用、表格、链接和图片。不加入 JavaScript、CSS、iframe、表单、SVG、音频或视频。图片应该先下载下来，然后转成 base64 内嵌到网页中（支持 HTTP/HTTPS 链接）。
+3. HTML 只包含文章正文，推荐使用 article、标题、段落、列表、引用、表格、链接和图片。不加入 JavaScript、CSS、iframe、表单、SVG、音频或视频。图片应该先下载下来，然后转成 base64 内嵌到网页中（支持 HTTP/HTTPS 链接）。**配图优先使用信息来源处提供的原图，尽量不要用 AI 生成配图**（这是一条非强制的偏好：来源确实没有可用配图、或原始配图不可下载 / 明显不合适时，才用 AI 生成配图或干脆不配图）。
 
    **⚠️ 体积硬上限：整个 HTML（含 base64 图片）必须 ≤ 10 MB**（应用层上限，超出返回 413 `ARTICLE_TOO_LARGE`）。
    base64 比原图大约 1.33 倍，所以**所有内嵌图片的原始体积合计要控制在 7 MB 左右**，
