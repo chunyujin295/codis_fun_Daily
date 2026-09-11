@@ -1,5 +1,12 @@
 'use client';
 
+/* 首页 HTML 不做任何缓存。
+   Next 对静态预渲染页默认给 Cache-Control: s-maxage=31536000（一年），手机浏览器
+   又会对 HTML 做启发式缓存，结果就是"部署了新版、手机却一直用旧的 HTML/CSS 引用"，
+   表现为改了样式看不到（2026-09-11 倒影修复就踩过）。
+   页面数据本来就来自客户端的 /api/v1/timeline，动态渲染几乎没有额外成本。 */
+export const dynamic = 'force-dynamic';
+
 import type {
   CSSProperties,
   KeyboardEvent,
