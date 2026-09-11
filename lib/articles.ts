@@ -418,12 +418,14 @@ export function getArticleBySlug(slug: string, includeArchived = false) {
         v.generated_at AS generatedAt, v.content_date AS contentDate,
         v.published_at AS publishedAt, v.tags_json AS tagsJson,
         v.sanitized_html AS html, v.extracted_text AS extractedText,
-        COALESCE(j.status, 'UNAVAILABLE') AS audioStatus
+        COALESCE(j.status, 'UNAVAILABLE') AS audioStatus,
+        aa.duration_ms AS audioDurationMs
       FROM articles a
       JOIN article_versions v
         ON v.article_id = a.id AND v.version = a.current_version
       JOIN categories c ON c.slug = v.category_slug
       LEFT JOIN tts_jobs j ON j.article_version_id = v.id
+      LEFT JOIN audio_assets aa ON aa.article_version_id = v.id
       WHERE a.slug = ? ${includeArchived ? '' : "AND a.status = 'published'"}
     `)
     .get(slug) as
@@ -435,6 +437,7 @@ export function getArticleBySlug(slug: string, includeArchived = false) {
         publishedAt: string;
         html: string;
         extractedText: string;
+        audioDurationMs: number | null;
       })
     | undefined;
   return row;

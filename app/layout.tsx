@@ -7,7 +7,7 @@ import './signature.css';
 import { AudioPlayerProvider } from '@/components/audio-player-provider';
 
 export const metadata: Metadata = {
-  title: 'Daily Knowledge',
+  title: 'Daily Paper',
   description: '按日期和栏目浏览每日文章。',
   icons: {
     icon: '/Daily/icon.png',

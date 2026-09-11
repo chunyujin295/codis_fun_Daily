@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Clock3, Leaf } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Clock3 } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
@@ -26,7 +26,7 @@ export default async function ArticlePage({
         </Link>
         <div className="article-topbar-actions">
           <span className="article-brand">
-            <Leaf /> Daily Knowledge
+            Daily Paper
           </span>
           <ThemeToggle />
         </div>
@@ -59,6 +59,7 @@ export default async function ArticlePage({
               articleId={article.id}
               title={article.title}
               status={article.audioStatus ?? 'UNAVAILABLE'}
+              durationMs={article.audioDurationMs}
             />
             <div className="article-tags" aria-label="文章标签">
               {tags.map((tag) => (

@@ -411,7 +411,7 @@ export default function Home() {
       </a>
 
       <header className="site-header">
-        <Link className="brand" href="/" aria-label="Daily Knowledge 首页">
+        <Link className="brand" href="/" aria-label="Daily Paper 首页">
           <Image
             className="brand-mark"
             src="/Daily/icon.png"
@@ -419,7 +419,7 @@ export default function Home() {
             width={18}
             height={18}
           />
-          <strong>Daily Knowledge</strong>
+          <strong>Daily Paper</strong>
         </Link>
 
         <div className="header-actions">
@@ -431,7 +431,7 @@ export default function Home() {
         </div>
       </header>
 
-      <h1 className="sr-only">Daily Knowledge 每日更新</h1>
+      <h1 className="sr-only">Daily Paper 每日更新</h1>
 
       <div className="filter-shell">
         <nav className="category-filter" aria-label="栏目筛选">

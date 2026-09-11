@@ -3,6 +3,8 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import WebSocket from 'ws';
+
+import { estimateMp3DurationMs } from '@/lib/mp3';
 import { z } from 'zod';
 
 import { XFYUN_SEGMENT_MAX_BYTES } from '@/lib/constants';
@@ -464,6 +466,8 @@ export async function processNextTtsJob(workerId = `worker-${process.pid}`) {
     }
     await Promise.allSettled([fs.unlink(pcmPath), fs.unlink(mp3Path)]);
 
+    const durationMs = estimateMp3DurationMs(await fs.readFile(finalPath));
+
     db.transaction(() => {
       const current = db
         .prepare(`
@@ -481,17 +485,19 @@ export async function processNextTtsJob(workerId = `worker-${process.pid}`) {
       db.prepare(`
         INSERT INTO audio_assets(
           article_version_id, tts_job_id, relative_path, mime_type,
-          byte_size, hash, created_at
-        ) VALUES (?, ?, ?, 'audio/mpeg', ?, ?, ?)
+          byte_size, hash, duration_ms, created_at
+        ) VALUES (?, ?, ?, 'audio/mpeg', ?, ?, ?, ?)
         ON CONFLICT(article_version_id) DO UPDATE SET
           tts_job_id = excluded.tts_job_id, relative_path = excluded.relative_path,
-          byte_size = excluded.byte_size, hash = excluded.hash, created_at = excluded.created_at
+          byte_size = excluded.byte_size, hash = excluded.hash,
+          duration_ms = excluded.duration_ms, created_at = excluded.created_at
       `).run(
         details.versionId,
         job.id,
         relativePath,
         mp3.length,
         hash,
+        durationMs,
         new Date().toISOString(),
       );
       db.prepare(`

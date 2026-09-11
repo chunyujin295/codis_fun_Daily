@@ -15,7 +15,7 @@ export default async function AdminLoginPage() {
         <ThemeToggle />
       </div>
       <section className="admin-login-card">
-        <span className="admin-kicker">Daily Knowledge</span>
+        <span className="admin-kicker">Daily Paper</span>
         <h1>管理后台</h1>
         <p>文章浏览、删除、完整文件更新，以及栏目与朗读服务配置。</p>
         <AdminLoginForm configured={isAdminPasswordConfigured()} />

@@ -404,7 +404,7 @@ export function AdminDashboard({
     <main className="admin-page">
       <header className="admin-header">
         <div>
-          <span>Daily Knowledge</span>
+          <span>Daily Paper</span>
           <h1>管理后台</h1>
         </div>
         <div className="admin-header-actions">

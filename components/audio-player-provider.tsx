@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { BASE_PATH } from '@/lib/constants';
 
-type Track = { articleId: string; title: string };
+type Track = { articleId: string; title: string; durationMs?: number | null };
 type PlayerContextValue = { play: (track: Track) => void };
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -49,9 +49,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     audio.addEventListener('timeupdate', () =>
       setCurrentTime(audio.currentTime),
     );
-    audio.addEventListener('durationchange', () =>
-      setDuration(audio.duration || 0),
-    );
+    audio.addEventListener('durationchange', () => {
+      const d = audio.duration;
+      if (Number.isFinite(d) && d > 0) setDuration(d);
+    });
     audio.addEventListener('ended', () => setPlaying(false));
     audio.addEventListener('error', () => setLoadError(true));
   }, []);
@@ -74,7 +75,10 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       audioRef.current = audio;
       setTrack(nextTrack);
       setCurrentTime(0);
-      setDuration(0);
+      // 如果服务端已知时长，先用它；等 durationchange 事件后会覆盖为精确值
+      setDuration(
+        nextTrack.durationMs ? nextTrack.durationMs / 1000 : 0,
+      );
       setLoadError(false);
       void audio.play().catch(() => setLoadError(true));
     },
@@ -196,6 +200,7 @@ export function ReadAloudButton({
   articleId,
   title,
   status,
+  durationMs,
 }: Track & { status: string }) {
   const player = useContext(PlayerContext);
   const ready = status === 'READY';
@@ -210,7 +215,7 @@ export function ReadAloudButton({
       type="button"
       variant="outline"
       disabled={!ready}
-      onClick={() => player?.play({ articleId, title })}
+      onClick={() => player?.play({ articleId, title, durationMs })}
       className="read-aloud-button"
     >
       <Volume2 />

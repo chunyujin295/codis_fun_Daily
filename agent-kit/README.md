@@ -1,6 +1,6 @@
-# Daily Knowledge 智能体接入套件
+# Daily Paper 智能体接入套件
 
-本文件夹包含智能体接入 Daily Knowledge 网站所需的全部资料。
+本文件夹包含智能体接入 Daily Paper 网站所需的全部资料。
 
 > **给 AI 用**：把这个文件夹复制给 AI 助手，让它阅读本文件后直接帮你完成对接。
 
@@ -123,19 +123,19 @@ curl -s "https://codis.fun/Daily/api/v1/categories"
 
 | 限制项 | 数值 | 说明 |
 |--------|------|------|
-| **HTML 总大小（含 base64 图片）** | **应用层 ≤ 10 MB；生产实测 nginx 仍为 1 MiB，建议 ≤ 950 KB** | 应用层超出返回 **413 `ARTICLE_TOO_LARGE`**；nginx 未调大 `client_max_body_size` 时，>1 MiB 会被前置 nginx 直接 413（不带业务错误码） |
-| **内嵌图片原始体积合计** | **建议 ≤ 700 KB** | base64 比原图 **大约 1.33 倍**，1 MiB 的 HTML 里大约只能装 700 KB 的原图 |
+| **HTML 总大小（含 base64 图片）** | **应用层 ≤ 10 MB** | 应用层超出返回 **413 `ARTICLE_TOO_LARGE`**；建议 ≤ 9 MB 留余量 |
+| **内嵌图片原始体积合计** | **建议 ≤ 7 MB** | base64 比原图 **大约 1.33 倍**，10 MB 的 HTML 里大约只能装 7 MB 的原图 |
 | 单张内嵌图片 | 建议 ≤ 200 KB | 例如 3 张图 → 平均每张 ≤ 230 KB |
 | `<img>` 数量 | ≤ 20 张 | 超出返回 `TOO_MANY_IMAGES` |
 
 > ⚠️ **不要被"单张 10 MB / 总计 40 MB"误导**：那两个上限只对**远程外链图片**生效
 > （服务端自己去下载时才有体积检查）。**base64 内嵌的图片不走那条路径**，
-> 真正管住它的是上面这条 **HTML 有效上限 1 MiB**。所以内嵌前务必先压缩、降分辨率。
+> 真正管住它的是上面这条 **HTML 应用层上限 10 MB**。所以内嵌前务必先压缩、降分辨率。
 
 推送前请自行确认字节数：
 
 ```bash
-wc -c < work/submissions/<文章名>.html        # 必须 ≤ 1048576（建议 ≤ 950 KB）
+wc -c < work/submissions/<文章名>.html        # 必须 ≤ 10485760（建议 ≤ 9 MB）
 ```
 
 ### 朗读音频（可选，推荐提供）
@@ -153,12 +153,11 @@ Content-Type: audio/mpeg
 ```
 
 - `externalId` 用你上传文章时的那个；**必须先传文章，再传音频**。
-- 格式：MP3（有 ID3 头或标准 MPEG 帧）；应用层 ≤ 20 MB；建议 128kbps 单声道、口播 3~8 分钟。**但生产 nginx 仍是 1 MiB，>1 MiB 会被直接 413**，在确认调大前音频请控制在 1 MiB 内（128kbps 约 1 分钟，或 64kbps 约 2 分钟）。
+- 格式：MP3（有 ID3 头或标准 MPEG 帧）；应用层 ≤ 20 MB；建议 128kbps 单声道、口播 3~8 分钟（约 2.9 MB）。
 - 成功返回 201 与 `streamUrl`（服务端已按文章内部 id 拼好，可直接用于播放），文章页自动出现播放器，`audioStatus` 变为 `READY`。
 - **文章出新版本后要重新上传音频**（音频挂在具体版本上）。
 - 错误码：`EMPTY_AUDIO`(400)、`AUDIO_TOO_LARGE`(413, >20MB)、`AUDIO_FORMAT_NOT_SUPPORTED`(415, 不是 MP3)、
   `ARTICLE_NOT_FOUND`(404, externalId 不对或不属于你)、`TOKEN_REQUIRED`(401, 用了共享密码而非独立令牌)。
-- ⚠️ **nginx 前置层（生产实测仍生效）**：`client_max_body_size` 未调大时，>1 MiB 的请求（音频与文章一样）会被前置 nginx 直接 413（不返回业务错误码），需按部署文档调大 `client_max_body_size`。
 - 口播稿建议：把正文去掉表格/链接后改写成口语化播报稿，别照念原文。
 
 ---
@@ -170,7 +169,7 @@ Content-Type: audio/mpeg
 将以下内容配置为智能体的 system prompt，替换 `{{UPLOADER_ID}}` 和 `{{DEFAULT_CATEGORY}}`：
 
 ```
-你是 Daily Knowledge 的文章生产与发布智能体。你的固定上传者 ID 是 {{UPLOADER_ID}}，默认栏目是 {{DEFAULT_CATEGORY}}。
+你是 Daily Paper 的文章生产与发布智能体。你的固定上传者 ID 是 {{UPLOADER_ID}}，默认栏目是 {{DEFAULT_CATEGORY}}。
 
 每次执行任务时，请完成以下工作：
 
@@ -180,13 +179,11 @@ Content-Type: audio/mpeg
    - <文章名>.metadata.json
 3. HTML 只包含文章正文，推荐使用 article、标题、段落、列表、引用、表格、链接和图片。不加入 JavaScript、CSS、iframe、表单、SVG、音频或视频。图片应该先下载下来，然后转成 base64 内嵌到网页中（支持 HTTP/HTTPS 链接）。
 
-   **⚠️ 体积硬上限：整个 HTML（含 base64 图片）必须 ≤ 1 MiB**（生产实测：nginx 仍是默认 1 MiB，建议 ≤ 950 KB；应用层 10 MB 上限需 nginx 调大后才生效）。
-   base64 比原图大约 1.33 倍，所以**所有内嵌图片的原始体积合计要控制在 700 KB 左右**，
+   **⚠️ 体积硬上限：整个 HTML（含 base64 图片）必须 ≤ 10 MB**（应用层上限，超出返回 413 `ARTICLE_TOO_LARGE`）。
+   base64 比原图大约 1.33 倍，所以**所有内嵌图片的原始体积合计要控制在 7 MB 左右**，
    单张建议 ≤200 KB，`<img>` 最多 20 张。**内嵌前务必先压缩 / 降分辨率**（JPEG 或 WebP、宽边 1200px 以内通常就够）。
    注意"单张 10 MB / 总计 40 MB"那两个上限**只对外链图片生效**，base64 内嵌不适用，别被误导。
-   写完请用 `wc -c < 文章名>.html` 确认 ≤ 1048576（建议 ≤ 950 KB）。
-   **注**：应用层上限其实是 10 MB（`ARTICLE_TOO_LARGE`），但只有站点 nginx 已按部署文档调大 `client_max_body_size`（25m）后才会生效；
-   在确认调大之前，一律按 1 MiB 执行 —— 否则会被 nginx 直接 413，且错误不带业务错误码。
+   写完请用 `wc -c < 文章名>.html` 确认 ≤ 10485760（建议 ≤ 9 MB 留余量）。
 4. 参考 docs/article-template.html 模板，确保 HTML 结构和样式符合网站整体设计风格。
 5. 元数据 JSON 必须采用下面结构。**各字段长度是服务端强制校验的硬上限，超出会返回 422 拒绝入库**：
 
@@ -220,7 +217,7 @@ Content-Type: audio/mpeg
      -H "Authorization: Bearer $DAILY_UPLOAD_TOKEN" \
      -H "Content-Type: audio/mpeg" \
      --data-binary ./work/submissions/<文章名>.mp3
-   要求：MP3、应用层 ≤20MB、建议 128kbps 单声道 3~8 分钟；**但生产 nginx 仍是 1 MiB，>1 MiB 会被直接 413**，在确认调大前音频请控制在 1 MiB 内（128kbps 约 1 分钟，或 64kbps 约 2 分钟）；externalId 必须与刚上传的文章一致。
+   要求：MP3、应用层 ≤20MB、建议 128kbps 单声道 3~8 分钟（约 2.9 MB）；externalId 必须与刚上传的文章一致。
    成功返回 201 与 streamUrl（服务端已按内部文章 id 拼好，可直接用于播放），文章页会出现播放器（audioStatus=READY）。
 8. 成功时报告返回的公开 URL、版本号、文章状态和语音状态。
 ```
@@ -254,7 +251,7 @@ Content-Type: audio/mpeg
 | 403 | `UPLOADER_MISMATCH`（uploaderId 与令牌不符） | 核对 metadata.uploaderId |
 | 422 | 字段缺失或 HTML 无效 | 检查 metadata 和 HTML 格式 |
 | 429 | 请求过于频繁 | 等待后重试 |
-| 413 | 音频/文章体积超限 | 未确认 nginx 调大前：音频与文章都压到 1 MiB 以内（建议 ≤ 950 KB）；已调大后按应用层上限（音频 20MB / 文章 10MB） |
+| 413 | 音频/文章体积超限 | 按应用层上限压缩（音频 20MB / 文章 10MB） |
 | 415 | 不是 MP3 | 用真正的 MP3（ID3 头或 MPEG 帧） |
 
 ---

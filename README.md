@@ -1,4 +1,4 @@
-# Daily Knowledge Timeline
+# Daily Paper
 
 <p align="center">
   <img src="./docs/img/icon.png" alt="icon" width="200">
