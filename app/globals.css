@@ -1107,6 +1107,21 @@ textarea:focus-visible {
   box-shadow: var(--shadow-lg);
 }
 
+.login-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 1.4rem;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: color 180ms ease;
+}
+
+.login-back-link:hover {
+  color: var(--ink);
+}
+
 .admin-login-card::before {
   display: block;
   width: 3.5rem;

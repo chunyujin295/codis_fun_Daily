@@ -10,6 +10,8 @@ export const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 export const ARTICLE_MAX_IMAGE_BYTES = 40 * 1024 * 1024;
 export const ARTICLE_MAX_IMAGES = 20;
 export const XFYUN_SEGMENT_MAX_BYTES = 7600;
+// 智能体上传的朗读音频（MP3）大小上限。20MB 约等于 128kbps 下 20 分钟，足够日常口播。
+export const AUDIO_MAX_BYTES = 20 * 1024 * 1024;
 
 // 元数据 summary 硬上限。首页卡片只会显示摘要的前几行，超长会在卡片里溢出，
 // 因此限制在 100 字以内。改动时需同步 agent-kit/README.md、docs/ 下各提示词与模板。

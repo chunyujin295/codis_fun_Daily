@@ -16,8 +16,8 @@ import type {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Settings2 } from 'lucide-react';
+import { BASE_PATH } from '@/lib/constants';
 
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -230,7 +230,6 @@ function flattenTracks(days: TimelineDay[], activeCategory: string) {
 }
 
 export default function Home() {
-  const router = useRouter();
   const [activeCategory, setActiveCategory] = useState('all');
   const [timelineDays, setTimelineDays] = useState<TimelineDay[]>(initialDays);
   const [availableCategories, setAvailableCategories] =
@@ -391,7 +390,8 @@ export default function Home() {
       position <= bounds.width * 0.62 &&
       activeTrack
     ) {
-      router.push(`/articles/${activeTrack.slug}`);
+      // 新标签页打开，不打断封面卡片浏览（注意 window.open 不会自动带 basePath）
+      window.open(`${BASE_PATH}/articles/${activeTrack.slug}`, '_blank', 'noopener,noreferrer');
     }
   }
 

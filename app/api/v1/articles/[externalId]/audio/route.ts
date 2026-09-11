@@ -1,11 +1,17 @@
+import { randomUUID } from 'node:crypto';
+import { access, mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { NextResponse } from 'next/server';
 
-import { BASE_PATH } from '@/lib/constants';
-import { getDb } from '@/lib/db';
+import { AUDIO_MAX_BYTES, BASE_PATH } from '@/lib/constants';
+import { sha256 } from '@/lib/crypto';
+import { getDataRoot, getDb } from '@/lib/db';
+import { verifyUploadRequest } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/** 查询某篇文章当前版本的音频状态（path 参数是文章内部 id） */
 export async function GET(
   _request: Request,
   context: { params: Promise<{ externalId: string }> },
@@ -36,5 +42,130 @@ export async function GET(
           : null,
     },
     { headers: { 'Cache-Control': 'no-store' } },
+  );
+}
+
+/**
+ * 智能体上传朗读音频（MP3），替代站点自带的讯飞合成。
+ *
+ * - 鉴权与文章上传一致（Bearer 独立令牌）。
+ * - 音频必须挂在**该令牌自己的**文章上（按 external_id + uploader_id 定位），
+ *   所以不能用 legacy 共享密码（那没有上传者身份）。
+ * - 请求体就是 MP3 的原始字节（Content-Type: audio/mpeg），不要用 multipart。
+ * - 入库时同步创建一条 status='READY' 的 tts_jobs 记录，这样既有的
+ *   GET /audio 与 /audio/stream（它们 JOIN tts_jobs）无需任何改动就能读到。
+ */
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ externalId: string }> },
+) {
+  const auth = verifyUploadRequest(request);
+  if (!auth.ok) {
+    return NextResponse.json(
+      { error: { code: auth.code } },
+      { status: auth.status },
+    );
+  }
+  // legacy 共享密码没有上传者身份，无法校验"音频只能挂在自己的文章上"
+  if (auth.mode !== 'token' || !auth.principal) {
+    return NextResponse.json(
+      { error: { code: 'TOKEN_REQUIRED' } },
+      { status: 401 },
+    );
+  }
+  const principal = auth.principal;
+  const { externalId } = await context.params;
+
+  const body = await request.arrayBuffer();
+  if (body.byteLength === 0) {
+    return NextResponse.json(
+      { error: { code: 'EMPTY_AUDIO' } },
+      { status: 400 },
+    );
+  }
+  if (body.byteLength > AUDIO_MAX_BYTES) {
+    return NextResponse.json(
+      { error: { code: 'AUDIO_TOO_LARGE' } },
+      { status: 413 },
+    );
+  }
+
+  // 轻量校验：MP3 要么有 ID3 标签头，要么以 MPEG 帧同步字节开头
+  const head = new Uint8Array(body.slice(0, 3));
+  const isId3 = head[0] === 0x49 && head[1] === 0x44 && head[2] === 0x33;
+  const isMpeg = head[0] === 0xff && (head[1] & 0xe0) === 0xe0;
+  if (!isId3 && !isMpeg) {
+    return NextResponse.json(
+      { error: { code: 'AUDIO_FORMAT_NOT_SUPPORTED' } },
+      { status: 415 },
+    );
+  }
+
+  const db = getDb();
+  const article = db
+    .prepare(`
+      SELECT a.id AS articleId, v.id AS versionId
+      FROM articles a
+      JOIN article_versions v
+        ON v.article_id = a.id AND v.version = a.current_version
+      WHERE a.external_id = ? AND a.uploader_id = ? AND a.status = 'published'
+    `)
+    .get(externalId, principal.uploaderId) as
+    | { articleId: string; versionId: string }
+    | undefined;
+  if (!article) {
+    return NextResponse.json(
+      { error: { code: 'ARTICLE_NOT_FOUND' } },
+      { status: 404 },
+    );
+  }
+
+  const bytes = Buffer.from(body);
+  const hash = sha256(bytes);
+  const relativePath = path.join(
+    'audio',
+    'sha256',
+    hash.slice(0, 2),
+    `${hash}.mp3`,
+  );
+  const finalPath = path.join(getDataRoot(), relativePath);
+  await mkdir(path.dirname(finalPath), { recursive: true });
+  try {
+    await access(finalPath); // 内容寻址：同一段音频已存在就复用
+  } catch {
+    await writeFile(finalPath, bytes, { flag: 'wx' });
+  }
+
+  const now = new Date().toISOString();
+  const jobId = randomUUID();
+  db.transaction(() => {
+    db.prepare(`
+      INSERT INTO tts_jobs(
+        id, article_version_id, provider_config_id, status, attempt_count,
+        created_at, updated_at
+      ) VALUES (?, ?, NULL, 'READY', 0, ?, ?)
+      ON CONFLICT(article_version_id) DO UPDATE SET
+        status = 'READY', safe_error_code = NULL, safe_error_message = NULL,
+        lease_owner = NULL, lease_expires_at = NULL, updated_at = excluded.updated_at
+    `).run(jobId, article.versionId, now, now);
+    db.prepare(`
+      INSERT INTO audio_assets(
+        article_version_id, tts_job_id, relative_path, mime_type,
+        byte_size, hash, created_at
+      ) VALUES (?, ?, ?, 'audio/mpeg', ?, ?, ?)
+      ON CONFLICT(article_version_id) DO UPDATE SET
+        tts_job_id = excluded.tts_job_id, relative_path = excluded.relative_path,
+        byte_size = excluded.byte_size, hash = excluded.hash, created_at = excluded.created_at
+    `).run(article.versionId, jobId, relativePath, bytes.length, hash, now);
+  })();
+
+  return NextResponse.json(
+    {
+      ok: true,
+      status: 'READY',
+      byteSize: bytes.length,
+      streamUrl: `${BASE_PATH}/api/v1/articles/${externalId}/audio/stream`,
+    },
+    { status: 201, headers: { 'Cache-Control': 'no-store' } },
   );
 }

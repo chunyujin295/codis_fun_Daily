@@ -138,6 +138,30 @@ curl -s "https://codis.fun/Daily/api/v1/categories"
 wc -c < work/submissions/<文章名>.html        # 必须 ≤ 2097152
 ```
 
+### 朗读音频（可选，推荐提供）
+
+站点支持**由智能体直接提供口播音频**，不再依赖站点自带的讯飞合成（后者仍可用，但需管理员另配讯飞凭据）。
+
+**流程**：先上传文章（见上）→ 生成口播 MP3 → 上传音频。音频挂在文章的当前版本上。
+
+```http
+POST /Daily/api/v1/articles/{externalId}/audio
+Authorization: Bearer <你的令牌>
+Content-Type: audio/mpeg
+
+<MP3 的原始字节>
+```
+
+- `externalId` 用你上传文章时的那个；**必须先传文章，再传音频**。
+- 格式：MP3（有 ID3 头或标准 MPEG 帧）；≤ 20 MB；建议 128kbps 单声道、口播 3~8 分钟。
+- 成功返回 201 与 `streamUrl`，文章页自动出现播放器，`audioStatus` 变为 `READY`。
+- **文章出新版本后要重新上传音频**（音频挂在具体版本上）。
+- 错误码：`EMPTY_AUDIO`(400)、`AUDIO_TOO_LARGE`(413, >20MB)、`AUDIO_FORMAT_NOT_SUPPORTED`(415, 不是 MP3)、
+  `ARTICLE_NOT_FOUND`(404, externalId 不对或不属于你)、`TOKEN_REQUIRED`(401, 用了共享密码而非独立令牌)。
+- 口播稿建议：把正文去掉表格/链接后改写成口语化播报稿，别照念原文。
+
+---
+
 ---
 
 ## 智能体提示词模板
@@ -188,7 +212,14 @@ wc -c < work/submissions/<文章名>.html        # 必须 ≤ 2097152
 
 6. 在项目根目录执行推送命令：
    npm run publish -- ./work/submissions/<文章名>.html
-7. 成功时报告返回的公开 URL、版本号、文章状态和语音状态。
+7. **（推荐）生成并上传朗读音频**：把正文改写成口语化播报稿，合成 MP3 后上传：
+   curl -X POST "<站点地址>/api/v1/articles/<externalId>/audio" \
+     -H "Authorization: Bearer $DAILY_UPLOAD_TOKEN" \
+     -H "Content-Type: audio/mpeg" \
+     --data-binary ./work/submissions/<文章名>.mp3
+   要求：MP3、≤20MB、建议 128kbps 单声道 3~8 分钟；externalId 必须与刚上传的文章一致。
+   成功返回 201 与 streamUrl，文章页会出现播放器（audioStatus=READY）。
+8. 成功时报告返回的公开 URL、版本号、文章状态和语音状态。
 ```
 
 ---
@@ -217,9 +248,11 @@ wc -c < work/submissions/<文章名>.html        # 必须 ≤ 2097152
 | 201 | 创建成功 | 检查返回的 URL |
 | 200 | 幂等重放（内容相同） | 无需处理 |
 | 401 | 令牌错误 | 检查 `.env.agent` 中的 `DAILY_UPLOAD_TOKEN` |
-| 403 | 栏目无权限 | 联系管理员添加栏目权限 |
+| 403 | `UPLOADER_MISMATCH`（uploaderId 与令牌不符） | 核对 metadata.uploaderId |
 | 422 | 字段缺失或 HTML 无效 | 检查 metadata 和 HTML 格式 |
 | 429 | 请求过于频繁 | 等待后重试 |
+| 413 | 音频/文章体积超限 | 音频压到 20MB 以内；文章压到 2MB 以内 |
+| 415 | 不是 MP3 | 用真正的 MP3（ID3 头或 MPEG 帧） |
 
 ---
 
